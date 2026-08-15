@@ -1,0 +1,478 @@
+{
+  "users": {},
+  "groups": {
+    "120363427816648721@g.us": {
+      "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
+      "welcome": true,
+      "vs": null,
+      "activity": {
+        "234930634268782@lid": {
+          "count": 9,
+          "lastSeen": 1786827273627
+        },
+        "124743701274745@lid": {
+          "count": 11,
+          "lastSeen": 1786829642192
+        },
+        "209220993589476@lid": {
+          "count": 2,
+          "lastSeen": 1786827433279
+        },
+        "85582105583676@lid": {
+          "count": 59,
+          "lastSeen": 1786830765083
+        },
+        "164334625886380@lid": {
+          "count": 5,
+          "lastSeen": 1786829539734
+        },
+        "138410320748642@lid": {
+          "count": 4,
+          "lastSeen": 1786830595693
+        },
+        "263123302895656@lid": {
+          "count": 9,
+          "lastSeen": 1786829830897
+        },
+        "118262260097162@lid": {
+          "count": 5,
+          "lastSeen": 1786829861530
+        },
+        "44255879917725@lid": {
+          "count": 8,
+          "lastSeen": 1786830160102
+        },
+        "52196922118172@lid": {
+          "count": 18,
+          "lastSeen": 1786829848646
+        },
+        "112619058950279@lid": {
+          "count": 3,
+          "lastSeen": 1786829595604
+        },
+        "85161215582262@lid": {
+          "count": 7,
+          "lastSeen": 1786829862092
+        },
+        "44298728927437@lid": {
+          "count": 2,
+          "lastSeen": 1786829633020
+        },
+        "141592472117312@lid": {
+          "count": 5,
+          "lastSeen": 1786829793883
+        },
+        "270068248240185@lid": {
+          "count": 4,
+          "lastSeen": 1786830560404
+        },
+        "260399773556811@lid": {
+          "count": 1,
+          "lastSeen": 1786829870635
+        },
+        "247776680095959@lid": {
+          "count": 1,
+          "lastSeen": 1786830183034
+        },
+        "11240181100638@lid": {
+          "count": 5,
+          "lastSeen": 1786830285832
+        },
+        "27415111848147@lid": {
+          "count": 1,
+          "lastSeen": 1786830257759
+        },
+        "164948336451832@lid": {
+          "count": 15,
+          "lastSeen": 1786830652189
+        },
+        "41417074319520@lid": {
+          "count": 11,
+          "lastSeen": 1786830654719
+        },
+        "108590077632544@lid": {
+          "count": 10,
+          "lastSeen": 1786830683698
+        },
+        "217016124346407@lid": {
+          "count": 1,
+          "lastSeen": 1786830647964
+        },
+        "85582105583676@s.whatsapp.net": {
+          "count": 58,
+          "lastSeen": 1786834262890
+        },
+        "257179017863199@s.whatsapp.net": {
+          "count": 9,
+          "lastSeen": 1786831891019
+        },
+        "17764202893367@s.whatsapp.net": {
+          "count": 1,
+          "lastSeen": 1786831000591
+        },
+        "41417074319520@s.whatsapp.net": {
+          "count": 34,
+          "lastSeen": 1786832014260
+        },
+        "108590077632544@s.whatsapp.net": {
+          "count": 1,
+          "lastSeen": 1786831073520
+        },
+        "136726643220509@s.whatsapp.net": {
+          "count": 8,
+          "lastSeen": 1786831964424
+        },
+        "105716945809544@s.whatsapp.net": {
+          "count": 16,
+          "lastSeen": 1786832000217
+        },
+        "164334625886380@s.whatsapp.net": {
+          "count": 46,
+          "lastSeen": 1786834212625
+        },
+        "246110249578675@s.whatsapp.net": {
+          "count": 20,
+          "lastSeen": 1786832020660
+        },
+        "263123302895656@s.whatsapp.net": {
+          "count": 6,
+          "lastSeen": 1786834105690
+        },
+        "134458363666562@s.whatsapp.net": {
+          "count": 1,
+          "lastSeen": 1786831823752
+        },
+        "124743701274745@s.whatsapp.net": {
+          "count": 41,
+          "lastSeen": 1786834413399
+        },
+        "185052977725648@s.whatsapp.net": {
+          "count": 34,
+          "lastSeen": 1786834203090
+        },
+        "118262260097162@s.whatsapp.net": {
+          "count": 45,
+          "lastSeen": 1786834210284
+        },
+        "11240181100638@s.whatsapp.net": {
+          "count": 1,
+          "lastSeen": 1786833386467
+        },
+        "270068248240185@s.whatsapp.net": {
+          "count": 10,
+          "lastSeen": 1786833719111
+        },
+        "27415111848147@s.whatsapp.net": {
+          "count": 7,
+          "lastSeen": 1786834129576
+        },
+        "141592472117312@s.whatsapp.net": {
+          "count": 10,
+          "lastSeen": 1786834459087
+        },
+        "207954431205448@s.whatsapp.net": {
+          "count": 12,
+          "lastSeen": 1786834421350
+        },
+        "278322571427885@s.whatsapp.net": {
+          "count": 13,
+          "lastSeen": 1786834206383
+        },
+        "56940300538@s.whatsapp.net": {
+          "count": 6,
+          "lastSeen": 1786834159806
+        },
+        "160030951272677@s.whatsapp.net": {
+          "count": 17,
+          "lastSeen": 1786834475775
+        },
+        "85161215582262@s.whatsapp.net": {
+          "count": 1,
+          "lastSeen": 1786834156325
+        },
+        "138410320748642@s.whatsapp.net": {
+          "count": 2,
+          "lastSeen": 1786834193233
+        }
+      },
+      "groupType": "general"
+    },
+    "120363423905542917@g.us": {
+      "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
+      "welcome": true,
+      "vs": null,
+      "activity": {
+        "36528730452165@lid": {
+          "count": 1,
+          "lastSeen": 1786827267709
+        },
+        "138410320748642@lid": {
+          "count": 1,
+          "lastSeen": 1786830572367
+        },
+        "155602907062411@s.whatsapp.net": {
+          "count": 2,
+          "lastSeen": 1786834368404
+        },
+        "124743701274745@s.whatsapp.net": {
+          "count": 1,
+          "lastSeen": 1786834332895
+        }
+      }
+    },
+    "120363406485027393@g.us": {
+      "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
+      "welcome": true,
+      "vs": null,
+      "activity": {
+        "164334625886380@lid": {
+          "count": 3,
+          "lastSeen": 1786827592143
+        },
+        "263123302895656@lid": {
+          "count": 1,
+          "lastSeen": 1786827583112
+        },
+        "190284667347153@s.whatsapp.net": {
+          "count": 2,
+          "lastSeen": 1786832840820
+        },
+        "134458363666562@s.whatsapp.net": {
+          "count": 3,
+          "lastSeen": 1786834025105
+        },
+        "160030951272677@s.whatsapp.net": {
+          "count": 10,
+          "lastSeen": 1786834041511
+        },
+        "138410320748642@s.whatsapp.net": {
+          "count": 6,
+          "lastSeen": 1786834055770
+        },
+        "270068248240185@s.whatsapp.net": {
+          "count": 1,
+          "lastSeen": 1786833839110
+        },
+        "278322571427885@s.whatsapp.net": {
+          "count": 11,
+          "lastSeen": 1786834033513
+        },
+        "56940300538@s.whatsapp.net": {
+          "count": 2,
+          "lastSeen": 1786834012906
+        }
+      },
+      "groupType": "lobby"
+    },
+    "120363425783086924@g.us": {
+      "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
+      "welcome": true,
+      "vs": null,
+      "activity": {
+        "164334625886380@lid": {
+          "count": 6,
+          "lastSeen": 1786829618785
+        },
+        "52196922118172@lid": {
+          "count": 9,
+          "lastSeen": 1786829514458
+        },
+        "138410320748642@lid": {
+          "count": 8,
+          "lastSeen": 1786829948165
+        },
+        "234930634268782@lid": {
+          "count": 8,
+          "lastSeen": 1786829970297
+        },
+        "44298728927437@s.whatsapp.net": {
+          "count": 1,
+          "lastSeen": 1786830948270
+        },
+        "164334625886380@s.whatsapp.net": {
+          "count": 5,
+          "lastSeen": 1786832583529
+        },
+        "138410320748642@s.whatsapp.net": {
+          "count": 6,
+          "lastSeen": 1786831980063
+        },
+        "164948336451832@s.whatsapp.net": {
+          "count": 4,
+          "lastSeen": 1786831380790
+        }
+      }
+    },
+    "120363432538779553@g.us": {
+      "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
+      "welcome": true,
+      "vs": null,
+      "activity": {
+        "138410320748642@lid": {
+          "count": 33,
+          "lastSeen": 1786829527986
+        },
+        "null": {
+          "count": 2,
+          "lastSeen": 1786829085129
+        },
+        "278322571427885@lid": {
+          "count": 32,
+          "lastSeen": 1786829524880
+        },
+        "56940300538:41@s.whatsapp.net": {
+          "count": 6,
+          "lastSeen": 1786829506102
+        },
+        "164334625886380@lid": {
+          "count": 13,
+          "lastSeen": 1786829563615
+        },
+        "278322571427885@s.whatsapp.net": {
+          "count": 53,
+          "lastSeen": 1786834468313
+        },
+        "56940300538@s.whatsapp.net": {
+          "count": 23,
+          "lastSeen": 1786833969570
+        },
+        "138410320748642@s.whatsapp.net": {
+          "count": 2,
+          "lastSeen": 1786834102078
+        },
+        "164334625886380@s.whatsapp.net": {
+          "count": 8,
+          "lastSeen": 1786834397991
+        }
+      }
+    },
+    "120363422821842581@g.us": {
+      "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
+      "welcome": true,
+      "vs": null,
+      "activity": {
+        "21548001972326@lid": {
+          "count": 2,
+          "lastSeen": 1786829060536
+        }
+      }
+    },
+    "120363409362652269@g.us": {
+      "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
+      "welcome": true,
+      "vs": null,
+      "activity": {
+        "112619058950279@lid": {
+          "count": 1,
+          "lastSeen": 1786829092804
+        },
+        "52196922118172@lid": {
+          "count": 5,
+          "lastSeen": 1786829724583
+        },
+        "270068248240185@lid": {
+          "count": 4,
+          "lastSeen": 1786829929307
+        }
+      }
+    },
+    "120363429396927470@g.us": {
+      "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
+      "welcome": true,
+      "vs": null,
+      "activity": {
+        "141592472117312@lid": {
+          "count": 13,
+          "lastSeen": 1786830398306
+        },
+        "38092215951445@lid": {
+          "count": 5,
+          "lastSeen": 1786829857703
+        },
+        "138410320748642@lid": {
+          "count": 1,
+          "lastSeen": 1786829757472
+        },
+        "85582105583676@lid": {
+          "count": 2,
+          "lastSeen": 1786830435461
+        },
+        "41417074319520@lid": {
+          "count": 1,
+          "lastSeen": 1786830521168
+        },
+        "164948336451832@lid": {
+          "count": 1,
+          "lastSeen": 1786830535831
+        },
+        "141592472117312@s.whatsapp.net": {
+          "count": 6,
+          "lastSeen": 1786833547750
+        },
+        "85582105583676@s.whatsapp.net": {
+          "count": 3,
+          "lastSeen": 1786834147617
+        }
+      }
+    },
+    "120363408634641353@g.us": {
+      "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
+      "welcome": true,
+      "vs": null,
+      "activity": {
+        "263123302895656@lid": {
+          "count": 8,
+          "lastSeen": 1786830461543
+        },
+        "138410320748642@lid": {
+          "count": 9,
+          "lastSeen": 1786830506230
+        },
+        "164334625886380@lid": {
+          "count": 1,
+          "lastSeen": 1786830189042
+        },
+        "52196922118172@lid": {
+          "count": 3,
+          "lastSeen": 1786830270485
+        },
+        "141592472117312@lid": {
+          "count": 1,
+          "lastSeen": 1786830295445
+        },
+        "17764202893367@lid": {
+          "count": 6,
+          "lastSeen": 1786830539788
+        },
+        "24374727958761@s.whatsapp.net": {
+          "count": 1,
+          "lastSeen": 1786832635236
+        },
+        "270068248240185@s.whatsapp.net": {
+          "count": 4,
+          "lastSeen": 1786833286451
+        }
+      }
+    },
+    "56940300538-1625502091@g.us": {
+      "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
+      "welcome": true,
+      "vs": null,
+      "activity": {
+        "56940300538@s.whatsapp.net": {
+          "count": 1,
+          "lastSeen": 1786833247972
+        },
+        "278322571427885@s.whatsapp.net": {
+          "count": 2,
+          "lastSeen": 1786833261593
+        }
+      }
+    },
+    "120363427085406980@g.us": {
+      "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
+      "welcome": true,
+      "vs": null
+    }
+  }
+}
