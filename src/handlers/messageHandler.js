@@ -78,16 +78,19 @@ async function handleMessage(sock, msg) {
         const participants = groupMetadata.participants || [];
 
         const senderParticipant = participants.find(p => {
+          if (!senderNumber) return false;
           const pNum = getCleanNumber(p.id);
-          if (!pNum || !senderNumber) return false;
-          if (pNum === senderNumber) return true;
-          return pNum.length >= 7 && senderNumber.length >= 7 && pNum.slice(-7) === senderNumber.slice(-7);
+          if (!pNum) return false;
+          if (p.id === senderRaw || pNum === senderNumber) return true;
+          if (pNum.endsWith(senderNumber) || senderNumber.endsWith(pNum)) return true;
+          if (pNum.length >= 7 && senderNumber.length >= 7 && pNum.slice(-7) === senderNumber.slice(-7)) return true;
+          return false;
         });
 
         const botParticipant = participants.find(p => {
           const pNum = getCleanNumber(p.id);
           if (!pNum) return false;
-          if (botNumber && (pNum === botNumber || (pNum.length >= 7 && botNumber.length >= 7 && pNum.slice(-7) === botNumber.slice(-7)))) {
+          if (botNumber && (pNum === botNumber || pNum.endsWith(botNumber) || botNumber.endsWith(pNum) || (pNum.length >= 7 && botNumber.length >= 7 && pNum.slice(-7) === botNumber.slice(-7)))) {
             return true;
           }
           if (msg.key.fromMe && senderNumber && (pNum === senderNumber || (pNum.length >= 7 && senderNumber.length >= 7 && pNum.slice(-7) === senderNumber.slice(-7)))) {
@@ -96,18 +99,18 @@ async function handleMessage(sock, msg) {
           return false;
         });
 
-        isAdmin = senderParticipant ? (senderParticipant.admin === 'admin' || senderParticipant.admin === 'superadmin') : false;
-        isBotAdmin = botParticipant ? (botParticipant.admin === 'admin' || botParticipant.admin === 'superadmin') : false;
+        const isSenderAdmin = senderParticipant ? (senderParticipant.admin === 'admin' || senderParticipant.admin === 'superadmin') : false;
+        const isBotAccountAdmin = botParticipant ? (botParticipant.admin === 'admin' || botParticipant.admin === 'superadmin') : false;
 
-        // Si la orden viene de la misma cuenta vinculada (fromMe)
-        if (msg.key.fromMe) {
-          isAdmin = true;
-          if (senderParticipant ? (senderParticipant.admin === 'admin' || senderParticipant.admin === 'superadmin') : false) {
-            isBotAdmin = true;
-          }
+        isAdmin = isSenderAdmin || msg.key.fromMe;
+        isBotAdmin = isBotAccountAdmin;
+
+        // Si la orden viene de la misma cuenta vinculada (fromMe) y la cuenta tiene admin
+        if (msg.key.fromMe && isSenderAdmin) {
+          isBotAdmin = true;
         }
 
-        console.log(`[Comando: #${command}] Grupo: ${jid} | Remitente: ${senderNumber} | Bot: ${botNumber} | EsAdmin: ${isAdmin} | BotEsAdmin: ${isBotAdmin}`);
+        console.log(`[Comando: #${command}] Grupo: ${jid} | Remitente: ${senderNumber} (Admin: ${isAdmin}) | Bot: ${botNumber} (BotAdmin: ${isBotAdmin})`);
       } catch (err) {
         console.error('Error obteniendo metadatos del grupo:', err);
       }
