@@ -99,8 +99,8 @@
           "lastSeen": 1786830647964
         },
         "85582105583676@s.whatsapp.net": {
-          "count": 58,
-          "lastSeen": 1786834262890
+          "count": 65,
+          "lastSeen": 1786834692507
         },
         "257179017863199@s.whatsapp.net": {
           "count": 9,
@@ -127,8 +127,8 @@
           "lastSeen": 1786832000217
         },
         "164334625886380@s.whatsapp.net": {
-          "count": 46,
-          "lastSeen": 1786834212625
+          "count": 47,
+          "lastSeen": 1786834572364
         },
         "246110249578675@s.whatsapp.net": {
           "count": 20,
@@ -143,16 +143,16 @@
           "lastSeen": 1786831823752
         },
         "124743701274745@s.whatsapp.net": {
-          "count": 41,
-          "lastSeen": 1786834413399
+          "count": 42,
+          "lastSeen": 1786834820272
         },
         "185052977725648@s.whatsapp.net": {
           "count": 34,
           "lastSeen": 1786834203090
         },
         "118262260097162@s.whatsapp.net": {
-          "count": 45,
-          "lastSeen": 1786834210284
+          "count": 50,
+          "lastSeen": 1786834582714
         },
         "11240181100638@s.whatsapp.net": {
           "count": 1,
@@ -167,32 +167,44 @@
           "lastSeen": 1786834129576
         },
         "141592472117312@s.whatsapp.net": {
-          "count": 10,
-          "lastSeen": 1786834459087
+          "count": 21,
+          "lastSeen": 1786834696386
         },
         "207954431205448@s.whatsapp.net": {
-          "count": 12,
-          "lastSeen": 1786834421350
+          "count": 22,
+          "lastSeen": 1786834830413
         },
         "278322571427885@s.whatsapp.net": {
-          "count": 13,
-          "lastSeen": 1786834206383
+          "count": 18,
+          "lastSeen": 1786834671449
         },
         "56940300538@s.whatsapp.net": {
-          "count": 6,
-          "lastSeen": 1786834159806
+          "count": 7,
+          "lastSeen": 1786834573535
         },
         "160030951272677@s.whatsapp.net": {
-          "count": 17,
-          "lastSeen": 1786834475775
+          "count": 19,
+          "lastSeen": 1786834540932
         },
         "85161215582262@s.whatsapp.net": {
           "count": 1,
           "lastSeen": 1786834156325
         },
         "138410320748642@s.whatsapp.net": {
+          "count": 5,
+          "lastSeen": 1786834619407
+        },
+        "182712807760096@s.whatsapp.net": {
+          "count": 10,
+          "lastSeen": 1786834721985
+        },
+        "164948336451832@s.whatsapp.net": {
           "count": 2,
-          "lastSeen": 1786834193233
+          "lastSeen": 1786834634669
+        },
+        "190284667347153@s.whatsapp.net": {
+          "count": 1,
+          "lastSeen": 1786834667134
         }
       },
       "groupType": "general"
@@ -217,6 +229,14 @@
         "124743701274745@s.whatsapp.net": {
           "count": 1,
           "lastSeen": 1786834332895
+        },
+        "164334625886380@s.whatsapp.net": {
+          "count": 3,
+          "lastSeen": 1786834825617
+        },
+        "164948336451832@s.whatsapp.net": {
+          "count": 1,
+          "lastSeen": 1786834642175
         }
       }
     },
@@ -329,20 +349,20 @@
           "lastSeen": 1786829563615
         },
         "278322571427885@s.whatsapp.net": {
-          "count": 53,
-          "lastSeen": 1786834468313
+          "count": 55,
+          "lastSeen": 1786834788112
         },
         "56940300538@s.whatsapp.net": {
           "count": 23,
           "lastSeen": 1786833969570
         },
         "138410320748642@s.whatsapp.net": {
-          "count": 2,
-          "lastSeen": 1786834102078
+          "count": 8,
+          "lastSeen": 1786834813387
         },
         "164334625886380@s.whatsapp.net": {
-          "count": 8,
-          "lastSeen": 1786834397991
+          "count": 12,
+          "lastSeen": 1786834748045
         }
       }
     },
@@ -451,6 +471,18 @@
         "270068248240185@s.whatsapp.net": {
           "count": 4,
           "lastSeen": 1786833286451
+        },
+        "263123302895656@s.whatsapp.net": {
+          "count": 3,
+          "lastSeen": 1786834765894
+        },
+        "164334625886380@s.whatsapp.net": {
+          "count": 5,
+          "lastSeen": 1786834759965
+        },
+        "138410320748642@s.whatsapp.net": {
+          "count": 2,
+          "lastSeen": 1786834749845
         }
       }
     },
@@ -470,6 +502,11 @@
       }
     },
     "120363427085406980@g.us": {
+      "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
+      "welcome": true,
+      "vs": null
+    },
+    "120363426685369948@g.us": {
       "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
       "welcome": true,
       "vs": null

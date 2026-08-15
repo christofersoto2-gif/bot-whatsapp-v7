@@ -8,15 +8,12 @@ module.exports = {
     const messageText = text.replace(new RegExp(`^${config.prefix}(tag|todos|everyone)`, 'i'), '').trim();
     const participants = groupMetadata.participants.map(p => p.id);
 
-    let tagMsg = `📢 *MENCIÓN DE CLAN (@everyone)* 📢\n\n`;
+    let tagMsg = `📢 *MENCIÓN DE CLAN* 📢\n\n`;
     if (messageText) {
-      tagMsg += `💬 *Mensaje:* ${messageText}\n\n`;
+      tagMsg += `${messageText}`;
+    } else {
+      tagMsg += ` atención a todo el clan.`;
     }
-    tagMsg += `👥 *Integrantes del Clan (${participants.length}):*\n`;
-
-    participants.forEach((p, index) => {
-      tagMsg += `${index + 1}. @${p.split('@')[0]}\n`;
-    });
 
     await sock.sendMessage(jid, { text: tagMsg, mentions: participants });
   },

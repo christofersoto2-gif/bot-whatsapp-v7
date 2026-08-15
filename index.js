@@ -111,17 +111,17 @@ async function startBot() {
       console.error('Error en evento de nuevos integrantes:', err);
     }
   });
-
-  // Servidor HTTP básico para Health Check en Koyeb / Render / Cloud
-  const http = require('http');
-  const PORT = process.env.PORT || 8080;
-  http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('⚔️ CLAN BOT DISCORD-STYLE IS ACTIVE 24/7 ⚔️');
-  }).listen(PORT, () => {
-    console.log(`🌐 Servidor de salud Web activo en el puerto ${PORT}`);
-  });
 }
+
+// Servidor HTTP básico para Health Check en Koyeb / Render / Cloud (se inicia 1 sola vez)
+const http = require('http');
+const PORT = process.env.PORT || 8080;
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('⚔️ CLAN BOT DISCORD-STYLE IS ACTIVE 24/7 ⚔️');
+}).listen(PORT, () => {
+  console.log(`🌐 Servidor de salud Web activo en el puerto ${PORT}`);
+});
 
 // Captura de excepciones globales
 process.on('uncaughtException', (err) => {
