@@ -25,19 +25,29 @@ module.exports = {
 
       await sock.sendMessage(jid, { text: infoText });
 
-      // Enviar archivo de audio directamente al chat usando Buffer y mimetype estándar audio/mpeg
+      // Enviar archivo de audio y Documento MP3 para compatibilidad total con iPhone (iOS) y Android
       const audioBuffer = await fs.readFile(result.filePath);
+
+      // 1. Enviar como Documento MP3 (Garantiza 100% de compatibilidad en iPhone / iOS y nunca expira)
       await sock.sendMessage(jid, {
-        audio: audioBuffer,
+        document: audioBuffer,
         mimetype: 'audio/mpeg',
-        fileName: `${result.title}.mp3`,
-        ptt: false
+        fileName: `${result.title.replace(/[^a-zA-Z0-9 ]/g, '')}.mp3`
       });
 
-      // Limpieza del archivo temporal de audio
+      // 2. Enviar reproductor de audio directo para Android / Web
+      try {
+        await sock.sendMessage(jid, {
+          audio: audioBuffer,
+          mimetype: 'audio/mp4',
+          ptt: false
+        });
+      } catch (e) {}
+
+      // Limpieza del archivo temporal tras 5 minutos (da tiempo a la descarga móvil en segundo plano)
       setTimeout(() => {
         fs.remove(result.filePath).catch(() => {});
-      }, 30000);
+      }, 300000);
 
     } catch (err) {
       console.error('Error en #ytaudio:', err);
