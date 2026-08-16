@@ -85,14 +85,15 @@ module.exports = {
           await sock.sendMessage(jid, { text: infoCaption });
         }
 
-        // 2. Alojar audio en CDN público de alta velocidad para otorgar tokens de red permanentes a WhatsApp (resuelve iPhone iOS)
-        const cdnUrl = await uploadToCdn(opusPath) || await uploadToCdn(result.filePath);
-        const audioSource = cdnUrl ? { url: cdnUrl } : await fs.readFile(opusPath);
+        // 2. Enviar la nota de voz PTT (ptt: true) con metadatos de duracion exactos
+        const durationSec = parseDurationToSeconds(result.duration);
+        const fileBuffer = await fs.readFile(opusPath);
 
-        // 3. Enviar la nota de voz PTT (ptt: true) con transmisión directa desde servidor CDN
         await sock.sendMessage(jid, {
-          audio: audioSource,
+          audio: fileBuffer,
           mimetype: 'audio/mp4',
+          seconds: durationSec,
+          fileLength: fileBuffer.length,
           ptt: true
         });
 
