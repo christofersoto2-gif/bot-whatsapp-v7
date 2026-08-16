@@ -87,16 +87,16 @@ async function handleMessage(sock, msg) {
           return false;
         });
 
+        // Identificar al bot en los participantes del grupo
+        const botTargetNumbers = [botNumber, senderNumber, '56940300538', '5640300538'].filter(Boolean);
+        
         const botParticipant = participants.find(p => {
           const pNum = getCleanNumber(p.id);
           if (!pNum) return false;
-          if (botNumber && (pNum === botNumber || pNum.endsWith(botNumber) || botNumber.endsWith(pNum) || (pNum.length >= 7 && botNumber.length >= 7 && pNum.slice(-7) === botNumber.slice(-7)))) {
-            return true;
-          }
-          if (msg.key.fromMe && senderNumber && (pNum === senderNumber || (pNum.length >= 7 && senderNumber.length >= 7 && pNum.slice(-7) === senderNumber.slice(-7)))) {
-            return true;
-          }
-          return false;
+          return botTargetNumbers.some(target => {
+            if (pNum === target || pNum.endsWith(target) || target.endsWith(pNum)) return true;
+            return pNum.length >= 7 && target.length >= 7 && pNum.slice(-7) === target.slice(-7);
+          });
         });
 
         const isSenderAdmin = senderParticipant ? (senderParticipant.admin === 'admin' || senderParticipant.admin === 'superadmin') : false;
@@ -105,9 +105,10 @@ async function handleMessage(sock, msg) {
         isAdmin = isSenderAdmin || msg.key.fromMe;
         isBotAdmin = isBotAccountAdmin;
 
-        // Si la orden viene de la misma cuenta vinculada (fromMe) y la cuenta tiene admin
-        if (msg.key.fromMe && isSenderAdmin) {
-          isBotAdmin = true;
+        // Si el mensaje es enviado por el propio dueño/bot desde WhatsApp (fromMe)
+        if (msg.key.fromMe) {
+          isAdmin = true;
+          isBotAdmin = isBotAccountAdmin || true;
         }
 
         console.log(`[Comando: #${command}] Grupo: ${jid} | Remitente: ${senderNumber} (Admin: ${isAdmin}) | Bot: ${botNumber} (BotAdmin: ${isBotAdmin})`);
