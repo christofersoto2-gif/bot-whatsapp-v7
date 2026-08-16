@@ -1,3 +1,4 @@
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const config = require('../../config');
 const db = require('../database/manager');
 const clanCmd = require('../commands/clan');
@@ -360,24 +361,42 @@ async function handleMessage(sock, msg) {
         const adminNum = senderNumber || 'Admin';
         const dateStr = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-        const formattedFicha = `📋 *NUEVA FICHA ACEPTADA - DYNASTY V7* 📋\n\n` +
+        const captionHeader = quotedMsg?.imageMessage ? `📷 *CAPTURA / FICHA DE PERFIL - DYNASTY V7* 📷` : `📋 *NUEVA FICHA ACEPTADA - DYNASTY V7* 📋`;
+
+        const formattedFicha = `${captionHeader}\n\n` +
           `👤 *Miembro Aceptado:* @${applicantNum}\n` +
           `⭐ *Aprobado por Admin:* @${adminNum}\n` +
           `📅 *Fecha:* ${dateStr}\n\n` +
-          `─────────── 📄 FICHA REGISTRADA ───────────\n\n` +
-          `${quotedText}`;
+          (quotedText ? `─────────── 📄 FICHA REGISTRADA ───────────\n\n${quotedText}` : '');
 
         try {
-          await sock.sendMessage(fichasGroupJid, { text: formattedFicha, mentions: [quotedParticipant, sender] });
+          if (quotedMsg?.imageMessage) {
+            const stream = await downloadContentFromMessage(quotedMsg.imageMessage, 'image');
+            let buffer = Buffer.from([]);
+            for await (const chunk of stream) {
+              buffer = Buffer.concat([buffer, chunk]);
+            }
+            await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha, mentions: [quotedParticipant, sender] });
+          } else if (quotedMsg?.videoMessage) {
+            const stream = await downloadContentFromMessage(quotedMsg.videoMessage, 'video');
+            let buffer = Buffer.from([]);
+            for await (const chunk of stream) {
+              buffer = Buffer.concat([buffer, chunk]);
+            }
+            await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha, mentions: [quotedParticipant, sender] });
+          } else {
+            await sock.sendMessage(fichasGroupJid, { text: formattedFicha, mentions: [quotedParticipant, sender] });
+          }
+
           await sock.sendMessage(jid, { 
-            text: `✅ *¡FICHA APROBADA CON ÉXITO!*\n\n` +
+            text: `✅ *¡REGISTRO ENVIADO Y APROBADO CON ÉXITO!*\n\n` +
                   `👤 *Postulante:* @${applicantNum}\n` +
-                  `📦 La ficha ha sido copiada y archivada en el canal de *FICHAS V7*.`,
+                  `📦 Copiado y archivado en el canal de *FICHAS V7*.`,
             mentions: [quotedParticipant] 
           });
         } catch (err) {
-          console.error('Error enviando ficha al canal de fichas:', err);
-          await sock.sendMessage(jid, { text: '❌ Ocurrió un error al enviar la ficha al canal de Fichas. Verifica que el bot esté en el grupo de Fichas.' });
+          console.error('Error enviando registro al canal de fichas:', err);
+          await sock.sendMessage(jid, { text: '❌ Ocurrió un error al enviar al canal de Fichas. Verifica que el bot esté en el grupo de Fichas.' });
         }
         break;
 
