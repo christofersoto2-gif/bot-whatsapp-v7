@@ -53,28 +53,34 @@ module.exports = {
       try {
         const result = await searchAndDownloadAudio(query);
 
-        const infoHeader = result.cached 
-          ? `⚡ *CANCIÓN RECUPERADA DE CACHÉ ULTRARRÁPIDA (0 SEG DELAY)* ⚡` 
-          : `🎵 *CANCIÓN ENCONTRADA EN YOUTUBE* 🎵`;
+        // Convertir a Opus OGG para garantizar reproductor PTT idéntico al bot anterior
+        const opusPath = await convertToOpusOgg(result.filePath);
+        const opusBuffer = await fs.readFile(opusPath);
+        const fileSizeMb = (opusBuffer.length / (1024 * 1024)).toFixed(2);
 
-        const infoText = `${infoHeader}\n\n` +
-          `📌 *Título:* ${result.title}\n` +
-          `👤 *Canal/Artista:* ${result.author}\n` +
-          `⏱️ *Duración:* ${result.duration}\n\n` +
-          `⏳ *Enviando audio al chat...*`;
+        const infoCaption = 
+          `┌✦」 Descargando <*${result.title}*>\n` +
+          `┆ ✏️ Canal: *${result.author}*\n` +
+          `┆ ⌛ Duración: *${result.duration}*\n` +
+          `┆ ❒ Tamaño: *${fileSizeMb}MB*\n` +
+          `┆ 🔗 URL: ${result.url}`;
 
-        await sock.sendMessage(jid, { text: infoText });
+        // 1. Enviar tarjeta con imagen de miniatura de YouTube (Thumbnail) idéntica a la captura
+        if (result.thumbnail) {
+          try {
+            await sock.sendMessage(jid, { image: { url: result.thumbnail }, caption: infoCaption });
+          } catch (e) {
+            await sock.sendMessage(jid, { text: infoCaption });
+          }
+        } else {
+          await sock.sendMessage(jid, { text: infoCaption });
+        }
 
-        const audioBuffer = await fs.readFile(result.filePath);
-        const durationSec = parseDurationToSeconds(result.duration);
-
-        const cleanFileName = (result.title || 'cancion').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'cancion';
-
-        // Enviar como Documento MP3 Oficial (Elimina el choque con la función "Transcribir" de iOS y activa la flechita de descarga manual ⬇️)
+        // 2. Enviar el reproductor de voz con micrófono azul (ptt: true) en formato Opus OGG nativo
         await sock.sendMessage(jid, {
-          document: audioBuffer,
-          mimetype: 'audio/mpeg',
-          fileName: `${cleanFileName}.mp3`
+          audio: opusBuffer,
+          mimetype: 'audio/ogg; codecs=opus',
+          ptt: true
         });
 
       } catch (err) {
