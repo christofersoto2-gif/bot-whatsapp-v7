@@ -374,26 +374,35 @@ async function handleMessage(sock, msg) {
       case 'aceptar':
       case 'ficha':
       case 'moverficha':
+        console.log(`[APROBAR] Ejecutado por ${senderNumber} en ${jid}`);
         if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo se usa en grupos.' });
-        if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden aprobar fichas.' });
+        if (!isAdmin) {
+          console.log(`[APROBAR] Remitente ${senderNumber} no es admin.`);
+          return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden aprobar fichas.' });
+        }
 
-        if (!quotedMsg || !quotedParticipant) {
+        const quotedUserJid = contextInfo?.participant || contextInfo?.quotedParticipant || targetUser;
+        console.log(`[APROBAR] quotedMsg: ${!!quotedMsg}, quotedUserJid: ${quotedUserJid}`);
+
+        if (!quotedMsg && !quotedUserJid) {
           return sock.sendMessage(jid, { text: '⚠️ *Uso correcto:* Responde a la Ficha o Captura llenada por el postulante y escribe *#aprobar* (o *#aceptar*).' });
         }
 
         let fichasGroupJid = db.getFichasGroup();
+        console.log(`[APROBAR] db.getFichasGroup(): ${fichasGroupJid}`);
 
         if (!fichasGroupJid) {
-          // Auto-detectar grupo por nombre traduciendo cursivas, negritas Unicode y acentos
           try {
             const allGroups = await sock.groupFetchAllParticipating();
+            console.log(`[APROBAR] Buscando en ${Object.keys(allGroups).length} grupos donde está el bot...`);
             for (const gJid of Object.keys(allGroups)) {
               const rawName = allGroups[gJid].subject || '';
               const normalizedName = normalizeText(rawName);
+              console.log(` Grupo JID: ${gJid} | Nombre: "${rawName}" | Normalizado: "${normalizedName}"`);
               if (normalizedName.includes('ficha')) {
                 fichasGroupJid = gJid;
                 db.setGroupType(gJid, 'fichas');
-                console.log(`[Auto-Detect] Grupo de Fichas detectado automáticamente: ${gJid} (${rawName})`);
+                console.log(` [Auto-Detect] ¡GRUPO ENCONTRADO! -> ${gJid} (${rawName})`);
                 break;
               }
             }
@@ -403,10 +412,10 @@ async function handleMessage(sock, msg) {
         }
 
         if (!fichasGroupJid) {
-          return sock.sendMessage(jid, { text: '⚠️ Aún no se ha detectado el grupo de Fichas. Ve al canal de Fichas del clan y escribe *#setfichas*.' });
+          return sock.sendMessage(jid, { text: '⚠️ No se pudo encontrar el grupo de Fichas. Entra al grupo de Fichas del clan y escribe *#setfichas*.' });
         }
 
-        const applicantNum = quotedParticipant.split('@')[0];
+        const applicantNum = (quotedUserJid || sender).split('@')[0].split(':')[0];
         const adminNum = senderNumber || 'Admin';
         const dateStr = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -420,6 +429,7 @@ async function handleMessage(sock, msg) {
 
         try {
           let mediaSent = false;
+          const mentionsList = [quotedUserJid, sender].filter(Boolean);
 
           if (quotedMsg?.imageMessage) {
             try {
@@ -429,11 +439,11 @@ async function handleMessage(sock, msg) {
                 buffer = Buffer.concat([buffer, chunk]);
               }
               if (buffer.length > 0) {
-                await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha, mentions: [quotedParticipant, sender] });
+                await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha, mentions: mentionsList });
                 mediaSent = true;
               }
             } catch (mediaErr) {
-              console.log('No se pudo descargar la imagen citada, enviando tarjeta formateada...');
+              console.log('No se pudo descargar la imagen citada:', mediaErr);
             }
           } else if (quotedMsg?.videoMessage) {
             try {
@@ -443,27 +453,27 @@ async function handleMessage(sock, msg) {
                 buffer = Buffer.concat([buffer, chunk]);
               }
               if (buffer.length > 0) {
-                await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha, mentions: [quotedParticipant, sender] });
+                await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha, mentions: mentionsList });
                 mediaSent = true;
               }
             } catch (mediaErr) {
-              console.log('No se pudo descargar el video citado, enviando tarjeta formateada...');
+              console.log('No se pudo descargar el video citado:', mediaErr);
             }
           }
 
           if (!mediaSent) {
-            await sock.sendMessage(fichasGroupJid, { text: formattedFicha, mentions: [quotedParticipant, sender] });
+            await sock.sendMessage(fichasGroupJid, { text: formattedFicha, mentions: mentionsList });
           }
 
           await sock.sendMessage(jid, { 
             text: `✅ *¡REGISTRO ENVIADO Y APROBADO CON ÉXITO!*\n\n` +
                   `👤 *Postulante:* @${applicantNum}\n` +
                   `📦 Copiado y archivado en el canal de *FICHAS V7*.`,
-            mentions: [quotedParticipant] 
+            mentions: [quotedUserJid].filter(Boolean)
           });
         } catch (err) {
           console.error('Error enviando registro al canal de fichas:', err);
-          await sock.sendMessage(jid, { text: '❌ Ocurrió un error al enviar al canal de Fichas. Verifica que el bot esté en el grupo de Fichas.' });
+          await sock.sendMessage(jid, { text: `❌ Ocurrió un error al enviar al canal de Fichas: ${err.message}` });
         }
         break;
 
