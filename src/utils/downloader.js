@@ -218,9 +218,40 @@ async function convertToMp3(inputPath) {
   });
 }
 
+/**
+ * Convierte el audio descargado a M4A / AAC limpio con FFmpeg (-c:a aac -b:a 128k -map_metadata -1 -movflags +faststart)
+ * (Fórmula mágica definitiva para reproducir instantáneamente en iPhones iOS, Android y Web sin congelarse)
+ */
+async function convertToM4a(inputPath) {
+  if (!inputPath || !fs.existsSync(inputPath)) return inputPath;
+  const outputPath = inputPath.replace(/\.[a-z0-9]+$/i, '_final.m4a');
+  if (fs.existsSync(outputPath)) return outputPath;
+
+  return new Promise((resolve) => {
+    ffmpeg(inputPath)
+      .noVideo()
+      .audioCodec('aac')
+      .audioBitrate('128k')
+      .outputOptions([
+        '-map_metadata', '-1',
+        '-movflags', '+faststart'
+      ])
+      .on('end', () => {
+        console.log(`[FFmpeg] M4A AAC faststart generado con éxito para iOS/Android: ${outputPath}`);
+        resolve(outputPath);
+      })
+      .on('error', (err) => {
+        console.error('Error en conversión M4A AAC:', err.message);
+        resolve(inputPath);
+      })
+      .save(outputPath);
+  });
+}
+
 module.exports = {
   searchAndDownloadAudio,
   convertToOpusOgg,
   convertToMp3,
+  convertToM4a,
   uploadToCdn
 };

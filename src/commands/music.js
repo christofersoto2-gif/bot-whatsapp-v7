@@ -1,4 +1,4 @@
-const { searchAndDownloadAudio, convertToMp3 } = require('../utils/downloader');
+const { searchAndDownloadAudio, convertToM4a } = require('../utils/downloader');
 const config = require('../../config');
 const fs = require('fs-extra');
 
@@ -53,10 +53,10 @@ module.exports = {
       try {
         const result = await searchAndDownloadAudio(query);
 
-        // 1. Convertir a MP3 limpio codificado con FFmpeg (libmp3lame -q:a 2)
-        const cleanMp3Path = await convertToMp3(result.filePath);
-        const mp3Buffer = await fs.readFile(cleanMp3Path);
-        const fileSizeMb = (mp3Buffer.length / (1024 * 1024)).toFixed(2);
+        // 1. Aplicar la Fórmula Mágica Definitiva de FFmpeg (-c:a aac -b:a 128k -map_metadata -1 -movflags +faststart)
+        const m4aPath = await convertToM4a(result.filePath);
+        const m4aBuffer = await fs.readFile(m4aPath);
+        const fileSizeMb = (m4aBuffer.length / (1024 * 1024)).toFixed(2);
         const durationSec = parseDurationToSeconds(result.duration);
 
         const infoCaption = 
@@ -87,12 +87,12 @@ module.exports = {
           await sock.sendMessage(jid, { text: infoCaption });
         }
 
-        // 3. El Truco Nativo de Baileys para iPhone (iOS) y Android: MP3 limpio con mimetype audio/mp4 y ptt: false
+        // 3. Enviar archivo M4A AAC nativo de Apple para iPhone iOS, Android y Web (mimetype: 'audio/mp4', ptt: false)
         await sock.sendMessage(jid, {
-          audio: mp3Buffer,
+          audio: m4aBuffer,
           mimetype: 'audio/mp4',
           seconds: durationSec,
-          fileLength: mp3Buffer.length,
+          fileLength: m4aBuffer.length,
           ptt: false
         });
 
