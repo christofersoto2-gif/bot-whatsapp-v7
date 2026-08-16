@@ -29,12 +29,14 @@ module.exports = {
 
       await sock.sendMessage(jid, { text: infoText });
 
-      // Enviar archivo de audio universal compatible con iPhone (iOS CoreAudio), Android y Web
+      // Enviar archivo de audio 100% universal compatible con TODAS las marcas (Xiaomi, Motorola, Samsung, iPhone, Huawei, Web)
       const audioBuffer = await fs.readFile(result.filePath);
+      const cleanFileName = (result.title || 'cancion').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'cancion';
 
       await sock.sendMessage(jid, {
         audio: audioBuffer,
         mimetype: 'audio/mpeg',
+        fileName: `${cleanFileName}.mp3`,
         ptt: false
       });
 
