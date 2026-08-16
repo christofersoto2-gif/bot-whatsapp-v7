@@ -348,8 +348,8 @@ async function handleMessage(sock, msg) {
         if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo se usa en grupos.' });
         if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden aprobar fichas.' });
 
-        if (!quotedText || !quotedParticipant) {
-          return sock.sendMessage(jid, { text: '⚠️ *Uso correcto:* Responde a la Ficha llenada por el postulante y escribe *#aprobar* (o *#aceptar*).' });
+        if (!quotedMsg || !quotedParticipant) {
+          return sock.sendMessage(jid, { text: '⚠️ *Uso correcto:* Responde a la Ficha o Captura llenada por el postulante y escribe *#aprobar* (o *#aceptar*).' });
         }
 
         const fichasGroupJid = db.getFichasGroup();
@@ -370,21 +370,39 @@ async function handleMessage(sock, msg) {
           (quotedText ? `─────────── 📄 FICHA REGISTRADA ───────────\n\n${quotedText}` : '');
 
         try {
+          let mediaSent = false;
+
           if (quotedMsg?.imageMessage) {
-            const stream = await downloadContentFromMessage(quotedMsg.imageMessage, 'image');
-            let buffer = Buffer.from([]);
-            for await (const chunk of stream) {
-              buffer = Buffer.concat([buffer, chunk]);
+            try {
+              const stream = await downloadContentFromMessage(quotedMsg.imageMessage, 'image');
+              let buffer = Buffer.from([]);
+              for await (const chunk of stream) {
+                buffer = Buffer.concat([buffer, chunk]);
+              }
+              if (buffer.length > 0) {
+                await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha, mentions: [quotedParticipant, sender] });
+                mediaSent = true;
+              }
+            } catch (mediaErr) {
+              console.log('No se pudo descargar la imagen citada, enviando tarjeta formateada...');
             }
-            await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha, mentions: [quotedParticipant, sender] });
           } else if (quotedMsg?.videoMessage) {
-            const stream = await downloadContentFromMessage(quotedMsg.videoMessage, 'video');
-            let buffer = Buffer.from([]);
-            for await (const chunk of stream) {
-              buffer = Buffer.concat([buffer, chunk]);
+            try {
+              const stream = await downloadContentFromMessage(quotedMsg.videoMessage, 'video');
+              let buffer = Buffer.from([]);
+              for await (const chunk of stream) {
+                buffer = Buffer.concat([buffer, chunk]);
+              }
+              if (buffer.length > 0) {
+                await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha, mentions: [quotedParticipant, sender] });
+                mediaSent = true;
+              }
+            } catch (mediaErr) {
+              console.log('No se pudo descargar el video citado, enviando tarjeta formateada...');
             }
-            await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha, mentions: [quotedParticipant, sender] });
-          } else {
+          }
+
+          if (!mediaSent) {
             await sock.sendMessage(fichasGroupJid, { text: formattedFicha, mentions: [quotedParticipant, sender] });
           }
 
