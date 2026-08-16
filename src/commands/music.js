@@ -65,14 +65,18 @@ module.exports = {
           `┆ ❒ Tamaño: *${fileSizeMb}MB*\n` +
           `┆ 🔗 URL: ${result.url}`;
 
-        // 1. Enviar tarjeta con imagen de miniatura de YouTube (Thumbnail) descargada en Buffer para prevenir fallos C++ (GLib)
+        // 1. Enviar tarjeta con imagen de miniatura de YouTube (Thumbnail) deshabilitando el generador C++ (sharp/libvips) con jpegThumbnail vacio
         let imgSent = false;
         if (result.thumbnail) {
           try {
             const imgRes = await fetch(result.thumbnail);
             if (imgRes.ok) {
               const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-              await sock.sendMessage(jid, { image: imgBuffer, caption: infoCaption });
+              await sock.sendMessage(jid, { 
+                image: imgBuffer, 
+                caption: infoCaption,
+                jpegThumbnail: Buffer.alloc(0)
+              });
               imgSent = true;
             }
           } catch (e) {}
