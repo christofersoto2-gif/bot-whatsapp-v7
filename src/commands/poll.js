@@ -62,10 +62,22 @@ module.exports = {
 
     const poll = db.getActivePoll(jid);
     if (!poll) {
-      return sock.sendMessage(jid, { text: `ℹ️ No hay ninguna votación activa en este momento. Usa *${config.prefix}votacion* para crear una.` });
+      return sock.sendMessage(jid, { text: `ℹ️ No hay ninguna votación activa en ningún grupo en este momento. Usa *${config.prefix}votacion* para crear una.` });
     }
 
-    const participants = groupMetadata.participants.map(p => p.id);
+    const pollGroupId = poll.sourceGroupId || jid;
+    let participants = groupMetadata.participants.map(p => p.id);
+
+    // Si el comando #resultados se ejecutó en otro canal/grupo distinto a donde se publicó la votación
+    if (pollGroupId !== jid) {
+      try {
+        const sourceMeta = await sock.groupMetadata(pollGroupId);
+        if (sourceMeta && sourceMeta.participants) {
+          participants = sourceMeta.participants.map(p => p.id);
+        }
+      } catch (e) {}
+    }
+
     const votes = poll.votes || {}; // { userId: optionIndex }
     const votedUsers = Object.keys(votes);
 

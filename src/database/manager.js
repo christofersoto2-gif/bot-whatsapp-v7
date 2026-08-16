@@ -351,9 +351,17 @@ class DatabaseManager {
     return true;
   }
 
-  getActivePoll(groupId) {
-    const group = this.getGroup(groupId);
-    return group.poll || null;
+  getActivePoll(groupId = null) {
+    if (groupId && this.data.groups[groupId] && this.data.groups[groupId].poll) {
+      return { ...this.data.groups[groupId].poll, sourceGroupId: groupId };
+    }
+    // Si no hay votación activa en este grupo específico, buscar si hay una votación activa en cualquier otro grupo del clan
+    for (const gId of Object.keys(this.data.groups)) {
+      if (this.data.groups[gId].poll) {
+        return { ...this.data.groups[gId].poll, sourceGroupId: gId };
+      }
+    }
+    return null;
   }
 
   closePoll(groupId) {
