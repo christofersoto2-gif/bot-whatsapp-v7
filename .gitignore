@@ -1,6 +1,5 @@
-# Ignorar módulos pesados y credenciales locales de WhatsApp
+# Ignorar módulos pesados
 node_modules/
-auth_info_baileys/
 *.log
 test.mp3
 test_audio.mp4
