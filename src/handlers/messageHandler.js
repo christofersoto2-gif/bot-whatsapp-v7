@@ -352,9 +352,28 @@ async function handleMessage(sock, msg) {
           return sock.sendMessage(jid, { text: '⚠️ *Uso correcto:* Responde a la Ficha o Captura llenada por el postulante y escribe *#aprobar* (o *#aceptar*).' });
         }
 
-        const fichasGroupJid = db.getFichasGroup();
+        let fichasGroupJid = db.getFichasGroup();
+
         if (!fichasGroupJid) {
-          return sock.sendMessage(jid, { text: '⚠️ Aún no se ha configurado el grupo de Fichas. Ve al canal de Fichas del clan y escribe *#setfichas*.' });
+          // Auto-detectar grupo por nombre si no se ha configurado con #setfichas
+          try {
+            const allGroups = await sock.groupFetchAllParticipating();
+            for (const gJid of Object.keys(allGroups)) {
+              const name = (allGroups[gJid].subject || '').toLowerCase();
+              if (name.includes('ficha')) {
+                fichasGroupJid = gJid;
+                db.setGroupType(gJid, 'fichas');
+                console.log(`[Auto-Detect] Grupo de Fichas detectado automáticamente: ${gJid} (${allGroups[gJid].subject})`);
+                break;
+              }
+            }
+          } catch (err) {
+            console.error('Error auto-detectando grupo de Fichas:', err);
+          }
+        }
+
+        if (!fichasGroupJid) {
+          return sock.sendMessage(jid, { text: '⚠️ Aún no se ha detectado el grupo de Fichas. Ve al canal de Fichas del clan y escribe *#setfichas*.' });
         }
 
         const applicantNum = quotedParticipant.split('@')[0];
