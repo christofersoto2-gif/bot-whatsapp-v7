@@ -1,4 +1,4 @@
-const { downloadContentFromMessage, decryptPollVote } = require('@whiskeysockets/baileys');
+const { downloadContentFromMessage, getAggregateVotesInPollMessage } = require('@whiskeysockets/baileys');
 const crypto = require('crypto');
 const config = require('../../config');
 const db = require('../database/manager');
@@ -152,61 +152,23 @@ async function handleMessage(sock, msg) {
     const botNumber = getCleanNumber(botRawId);
     const sender = senderNumber ? `${senderNumber}@s.whatsapp.net` : '';
 
-    // Procesar votos de encuestas nativas de WhatsApp (pollUpdateMessage)
-    if (msg.message?.pollUpdateMessage) {
-      const pollUpdate = msg.message.pollUpdateMessage;
-      const pollCreationKey = pollUpdate.pollCreationMessageKey;
-      const pollMsgId = pollCreationKey?.id;
-      
+    // Procesar votos de encuestas nativas de WhatsApp usando getAggregateVotesInPollMessage de Baileys
+    if (msg.message?.pollUpdateMessage || msg.pollUpdates) {
       const activePoll = db.getActivePoll(jid);
-      if (activePoll && activePoll.encKey) {
+      if (activePoll && activePoll.pollMessage) {
         try {
-          const pollEncKey = Buffer.from(activePoll.encKey, 'base64');
+          db.addPollUpdate(activePoll.sourceGroupId || jid, msg);
 
-          const creatorCandidates = [
-            activePoll.creatorJid,
-            botRawId,
-            botNumber ? `${botNumber}@s.whatsapp.net` : null,
-            jid
-          ];
+          const freshPoll = db.getActivePoll(jid);
+          const votesSummary = getAggregateVotesInPollMessage({
+            message: freshPoll.pollMessage,
+            pollUpdates: freshPoll.pollUpdates
+          }, botRawId);
 
-          const voterCandidates = [
-            senderRaw,
-            sender,
-            senderNumber ? `${senderNumber}@s.whatsapp.net` : null,
-            msg.key.participant,
-            msg.participant
-          ];
-
-          const voteMsg = tryDecryptPollVote(pollUpdate.vote, activePoll.id, pollEncKey, creatorCandidates, voterCandidates);
-
-          if (voteMsg && voteMsg.selectedOptions && voteMsg.selectedOptions.length > 0) {
-            const selectedOptBuf = voteMsg.selectedOptions[0];
-            const hex = Buffer.from(selectedOptBuf).toString('hex');
-            const str = Buffer.from(selectedOptBuf).toString('utf-8');
-
-            let matchedIdx = -1;
-            for (let i = 0; i < activePoll.options.length; i++) {
-              const opt = activePoll.options[i];
-              const h1 = crypto.createHash('sha256').update(opt).digest('hex');
-              const h2 = crypto.createHash('sha256').update(opt.trim()).digest('hex');
-              if (hex === h1 || hex === h2 || str === opt || str === opt.trim()) {
-                matchedIdx = i;
-                break;
-              }
-            }
-
-            if (matchedIdx !== -1) {
-              console.log(`[Voto de Encuesta Desencriptado ÉXITO] Usuario ${sender || senderRaw} votó por opción ${matchedIdx} (${activePoll.options[matchedIdx]})`);
-              db.recordPollVote(activePoll.sourceGroupId || jid, sender || senderRaw, matchedIdx, senderRaw);
-            }
-          } else if (voteMsg) {
-            // Deselección de opción
-            console.log(`[Voto de Encuesta Deseleccionado] Usuario ${sender || senderRaw}`);
-            db.recordPollVote(activePoll.sourceGroupId || jid, sender || senderRaw, -1, senderRaw);
-          }
+          db.updatePollVotesSummary(activePoll.sourceGroupId || jid, votesSummary);
+          console.log(`[Baileys Poll Aggregate ÉXITO] Votos actualizados para encuesta: ${freshPoll.title}`);
         } catch (err) {
-          console.error('Error desencriptando voto de encuesta nativa:', err);
+          console.error('Error calculando votos con getAggregateVotesInPollMessage:', err);
         }
       }
       return;

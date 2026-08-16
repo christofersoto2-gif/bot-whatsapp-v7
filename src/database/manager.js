@@ -324,37 +324,42 @@ class DatabaseManager {
   }
 
   // --- VOTACIONES & ENCUESTAS DE EVENTO ---
-  createPoll(groupId, pollId, title, options, encKey = null, creatorJid = null) {
+  createPoll(groupId, pollId, title, options, pollMessage = null) {
     const group = this.getGroup(groupId);
     group.poll = {
       id: pollId,
       title,
       options,
-      encKey: encKey ? (Buffer.isBuffer(encKey) ? encKey.toString('base64') : encKey) : null,
-      creatorJid: creatorJid || null,
-      votes: {},
+      pollMessage: pollMessage || null,
+      pollUpdates: [],
+      votesSummary: options.map(opt => ({ name: opt, voters: [] })),
       createdAt: Date.now()
     };
     this.save();
     return group.poll;
   }
 
-  recordPollVote(groupId, userId, optionIndex, rawSender = null) {
+  addPollUpdate(groupId, update) {
     const group = this.getGroup(groupId);
     if (!group.poll) return false;
+
+    if (!group.poll.pollUpdates) group.poll.pollUpdates = [];
+
+    // Prevenir duplicados de actualizacion
+    const updateKey = JSON.stringify(update.key || update.pollUpdateMessageKey || update.senderTimestampMs || Date.now());
+    const exists = group.poll.pollUpdates.some(u => JSON.stringify(u.key || u.pollUpdateMessageKey || u.senderTimestampMs) === updateKey);
     
-    if (!group.poll.votes) group.poll.votes = {};
-
-    const keysToUpdate = [userId, rawSender].filter(Boolean);
-
-    for (const key of keysToUpdate) {
-      if (optionIndex === null || optionIndex < 0) {
-        delete group.poll.votes[key];
-      } else {
-        group.poll.votes[key] = optionIndex;
-      }
+    if (!exists) {
+      group.poll.pollUpdates.push(update);
+      this.save();
     }
+    return true;
+  }
 
+  updatePollVotesSummary(groupId, votesSummary) {
+    const group = this.getGroup(groupId);
+    if (!group.poll) return false;
+    group.poll.votesSummary = votesSummary;
     this.save();
     return true;
   }

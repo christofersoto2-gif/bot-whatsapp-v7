@@ -44,10 +44,7 @@ module.exports = {
     });
 
     const pollId = pollMessage.key.id;
-    const encKey = pollMessage.message?.pollCreationMessage?.encKey;
-    const creatorJid = pollMessage.key.participant || (pollMessage.key.fromMe ? sock.user?.id : null);
-
-    db.createPoll(jid, pollId, title, options, encKey, creatorJid);
+    db.createPoll(jid, pollId, title, options, pollMessage.message);
 
     await sock.sendMessage(jid, {
       text: `📢 *¡NUEVA VOTACIÓN OFICIAL PUBLICADA!*\n\n` +
@@ -81,38 +78,46 @@ module.exports = {
       } catch (e) {}
     }
 
-    const votes = poll.votes || {}; // { userId: optionIndex }
-    const votedUsers = Object.keys(votes);
+    const botNum = (sock.user?.id || '').split(':')[0].split('@')[0].replace(/[^0-9]/g, '');
+    const cleanNum = (id) => id.split(':')[0].split('@')[0].replace(/[^0-9]/g, '');
 
+    const clanMembers = participants.filter(id => cleanNum(id) !== botNum);
+
+    const votesSummary = poll.votesSummary || poll.options.map(opt => ({ name: opt, voters: [] }));
+
+    let allVoters = [];
+    votesSummary.forEach(v => {
+      if (v.voters) allVoters.push(...v.voters);
+    });
+
+    const votedNums = allVoters.map(v => cleanNum(v));
+
+    const pendingUsers = clanMembers.filter(pId => {
+      const pNum = cleanNum(pId);
+      return !votedNums.includes(pNum);
+    });
+
+    let totalVotos = allVoters.length;
     let text = `📊 *RESULTADOS DE LA VOTACIÓN OFICIAL* 📊\n\n` +
                `📌 *Evento:* ${poll.title}\n` +
-               `👥 *Total de votos recibidos:* ${votedUsers.length}/${participants.length}\n\n`;
+               `👥 *Total de votos recibidos:* ${totalVotos}/${clanMembers.length}\n\n`;
 
     const mentions = [];
 
-    // Desglosar votos por cada opción
-    poll.options.forEach((optText, optIdx) => {
-      const usersForOpt = votedUsers.filter(uId => votes[uId] === optIdx);
-      text += `🔹 *${optText}* (${usersForOpt.length} votos):\n`;
+    // Desglosar votos por cada opción usando el resumen agregado de Baileys
+    votesSummary.forEach(v => {
+      const voters = v.voters || [];
+      text += `🔹 *${v.name}* (${voters.length} votos):\n`;
 
-      if (usersForOpt.length === 0) {
+      if (voters.length === 0) {
         text += `   _Ningún voto aún_\n\n`;
       } else {
-        usersForOpt.forEach(uId => {
-          text += `   • @${uId.split('@')[0]}\n`;
-          mentions.push(uId);
+        voters.forEach(vId => {
+          text += `   • @${vId.split('@')[0]}\n`;
+          mentions.push(vId);
         });
         text += `\n`;
       }
-    });
-
-    // Detectar miembros que NO han votado aún
-    const cleanNum = (id) => id.split(':')[0].split('@')[0].replace(/[^0-9]/g, '');
-    const votedNums = votedUsers.map(u => cleanNum(u));
-
-    const pendingUsers = participants.filter(pId => {
-      const pNum = cleanNum(pId);
-      return !votedNums.includes(pNum);
     });
 
     text += `-----------------------------------\n` +
