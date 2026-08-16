@@ -91,7 +91,7 @@ module.exports = {
 
         await sock.sendMessage(jid, {
           audio: fileBuffer,
-          mimetype: 'audio/mp4',
+          mimetype: 'audio/ogg; codecs=opus',
           seconds: durationSec,
           fileLength: fileBuffer.length,
           ptt: true
