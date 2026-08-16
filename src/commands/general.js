@@ -12,9 +12,10 @@ module.exports = {
       `▸ \`${config.prefix}anotar\` : Inscribirte a la alineación del VS\n` +
       `▸ \`${config.prefix}salirse\` : Salir de la alineación\n` +
       `▸ \`${config.prefix}lineup\` : Ver la escuadra anotada para el VS\n` +
-      `▸ \`${config.prefix}topactivos\` : Ver los 10 miembros con más mensajes\n` +
-      `▸ \`${config.prefix}topinactivos\` : Ver los 10 miembros menos activos\n` +
-      `▸ \`${config.prefix}fantasmas\` : Lista completa de inactivos (Admin)\n` +
+      `▸ \`${config.prefix}topactivos\` : Ver los 10 miembros más activos de la semana\n` +
+      `▸ \`${config.prefix}topinactivos\` : Ver los 10 miembros menos activos de la semana\n` +
+      `▸ \`${config.prefix}fantasmas\` : Lista completa de inactivos semanales (Admin)\n` +
+      `▸ \`${config.prefix}resetsemana\` : Reiniciar conteo semanal de mensajes (Admin)\n` +
       `▸ \`${config.prefix}reglas\` : Ver el reglamento del clan\n` +
       `▸ \`${config.prefix}setrules <texto>\` : Establecer reglas (Admin)\n` +
       `▸ \`${config.prefix}setlobby\` : Configurar grupo como Lobby de bienvenida (Admin)\n` +

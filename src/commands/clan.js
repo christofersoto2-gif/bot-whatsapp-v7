@@ -122,10 +122,14 @@ module.exports = {
   async handleTopActive(sock, jid, isGroup, groupMetadata) {
     if (!isGroup) return sock.sendMessage(jid, { text: '❌ Comando solo para grupos.' });
 
+    db.checkWeeklyReset(jid);
+    const startDateStr = db.getWeeklyResetDate(jid);
     const participants = groupMetadata.participants.map(p => p.id);
     const topActive = db.getTopActive(jid, participants, 10);
 
-    let text = `🔥 *TOP 10 INTEGRANTES MÁS ACTIVOS* 🔥\n\n`;
+    let text = `🔥 *TOP 10 INTEGRANTES MÁS ACTIVOS DE LA SEMANA* 🔥\n` +
+      `📅 *Ciclo semanal iniciado el:* ${startDateStr}\n\n`;
+
     topActive.forEach((u, idx) => {
       const number = u.id.split('@')[0];
       const medals = ['🥇', '🥈', '🥉'];
@@ -133,21 +137,29 @@ module.exports = {
       text += `${prefix} @${number} - *${u.count} mensajes*\n`;
     });
 
+    text += `\n💡 _El conteo semanal se reinicia automáticamente cada 7 días o con #resetsemana._`;
+
     await sock.sendMessage(jid, { text, mentions: topActive.map(u => u.id) });
   },
 
   async handleTopInactive(sock, jid, isGroup, groupMetadata) {
     if (!isGroup) return sock.sendMessage(jid, { text: '❌ Comando solo para grupos.' });
 
+    db.checkWeeklyReset(jid);
+    const startDateStr = db.getWeeklyResetDate(jid);
     const participants = groupMetadata.participants.map(p => p.id);
     const topInactive = db.getTopInactive(jid, participants, 10);
 
-    let text = `💤 *TOP 10 INTEGRANTES MÁS INACTIVOS* 💤\n\n`;
+    let text = `💤 *TOP 10 INTEGRANTES MÁS INACTIVOS DE LA SEMANA* 💤\n` +
+      `📅 *Ciclo semanal iniciado el:* ${startDateStr}\n\n`;
+
     topInactive.forEach((u, idx) => {
       const number = u.id.split('@')[0];
       const status = u.count === 0 ? '❌ *0 mensajes*' : `⚠️ *${u.count} mensajes*`;
       text += `${idx + 1}. @${number} - ${status}\n`;
     });
+
+    text += `\n💡 _El conteo semanal se reinicia automáticamente cada 7 días o con #resetsemana._`;
 
     await sock.sendMessage(jid, { text, mentions: topInactive.map(u => u.id) });
   },
@@ -156,24 +168,38 @@ module.exports = {
     if (!isGroup) return sock.sendMessage(jid, { text: '❌ Comando solo para grupos.' });
     if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden ver la lista completa de inactivos.' });
 
+    db.checkWeeklyReset(jid);
+    const startDateStr = db.getWeeklyResetDate(jid);
     const participants = groupMetadata.participants.map(p => p.id);
     const allActivity = db.getGroupActivity(jid, participants);
 
-    // Filtrar usuarios con 0 mensajes o menos de 3 mensajes
+    // Filtrar usuarios con 0 mensajes o menos de 3 mensajes esta semana
     const ghostUsers = allActivity.filter(u => u.count <= 2);
 
-    let text = `👻 *LISTA DE FANTASMAS / INACTIVOS DEL CLAN* 👻\n\n` +
-      `Total de integrantes inactivos (<= 2 mensajes): *${ghostUsers.length}*\n\n`;
+    let text = `👻 *LISTA DE FANTASMAS / INACTIVOS DE LA SEMANA* 👻\n` +
+      `📅 *Ciclo semanal iniciado el:* ${startDateStr}\n\n` +
+      `Total de integrantes inactivos (<= 2 mensajes esta semana): *${ghostUsers.length}*\n\n`;
 
     if (ghostUsers.length === 0) {
-      text += `🎉 ¡Excelente! Todo el clan está participando activamente.`;
+      text += `🎉 ¡Excelente! Todo el clan está participando activamente esta semana.`;
     } else {
       ghostUsers.forEach((u, idx) => {
-        text += `${idx + 1}. @${u.id.split('@')[0]} (Mensajes: ${u.count})\n`;
+        text += `${idx + 1}. @${u.id.split('@')[0]} (Mensajes esta semana: ${u.count})\n`;
       });
       text += `\n💡 _Usa ${config.prefix}warn @usuario Inactividad para advertir a los fantasmas._`;
     }
 
     await sock.sendMessage(jid, { text, mentions: ghostUsers.map(u => u.id) });
+  },
+
+  async handleResetActivity(sock, jid, isGroup, isAdmin) {
+    if (!isGroup) return sock.sendMessage(jid, { text: '❌ Comando solo para grupos.' });
+    if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden reiniciar el conteo semanal.' });
+
+    db.resetGroupActivity(jid);
+    await sock.sendMessage(jid, { 
+      text: `✅ *¡CONTEO SEMANAL DE MENSAJES REINICIADO CON ÉXITO!*\n\n` +
+            `📅 A partir de este momento comienza una nueva semana de conteo para este grupo.` 
+    });
   }
 };

@@ -207,10 +207,42 @@ class DatabaseManager {
     return false;
   }
 
-  // --- ACTIVIDAD DE GRUPO Y CLAN ---
+  // --- ACTIVIDAD DE GRUPO Y CLAN (SEMANAL) ---
+  checkWeeklyReset(groupId) {
+    const group = this.getGroup(groupId);
+    if (!group.lastWeeklyReset) group.lastWeeklyReset = Date.now();
+
+    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    if (Date.now() - group.lastWeeklyReset >= ONE_WEEK_MS) {
+      console.log(`[Auto-Reset Semanal] Reiniciando conteo de actividad para el grupo: ${groupId}`);
+      group.activity = {};
+      group.lastWeeklyReset = Date.now();
+      this.save();
+    }
+  }
+
+  getWeeklyResetDate(groupId) {
+    const group = this.getGroup(groupId);
+    if (!group.lastWeeklyReset) {
+      group.lastWeeklyReset = Date.now();
+      this.save();
+    }
+    return new Date(group.lastWeeklyReset).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
   trackActivity(groupId, userId) {
     const group = this.getGroup(groupId);
     if (!group.activity) group.activity = {};
+    if (!group.lastWeeklyReset) group.lastWeeklyReset = Date.now();
+
+    // Auto-reinicio semanal a los 7 días
+    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    if (Date.now() - group.lastWeeklyReset >= ONE_WEEK_MS) {
+      console.log(`[Auto-Reset Semanal] Reiniciando conteo de actividad para el grupo: ${groupId}`);
+      group.activity = {};
+      group.lastWeeklyReset = Date.now();
+    }
+
     if (!group.activity[userId]) {
       group.activity[userId] = { count: 0, lastSeen: 0 };
     }
@@ -220,6 +252,7 @@ class DatabaseManager {
   }
 
   getGroupActivity(groupId, participantsJids = []) {
+    this.checkWeeklyReset(groupId);
     const group = this.getGroup(groupId);
     const activityMap = group.activity || {};
 
@@ -249,6 +282,7 @@ class DatabaseManager {
   }
 
   getUserActivity(groupId, userId) {
+    this.checkWeeklyReset(groupId);
     const group = this.getGroup(groupId);
     const activityMap = group.activity || {};
     return activityMap[userId] || { count: 0, lastSeen: 0 };
@@ -257,6 +291,7 @@ class DatabaseManager {
   resetGroupActivity(groupId) {
     const group = this.getGroup(groupId);
     group.activity = {};
+    group.lastWeeklyReset = Date.now();
     this.save();
   }
 

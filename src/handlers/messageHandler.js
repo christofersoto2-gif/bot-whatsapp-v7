@@ -295,6 +295,12 @@ async function handleMessage(sock, msg) {
         await clanCmd.handleInactivosList(sock, jid, isGroup, groupMetadata, isAdmin);
         break;
 
+      case 'resetsemana':
+      case 'resetactividad':
+      case 'resetactivos':
+        await clanCmd.handleResetActivity(sock, jid, isGroup, isAdmin);
+        break;
+
       // --- MODERACIÓN DISCORD ---
       case 'close':
       case 'cerrar':
