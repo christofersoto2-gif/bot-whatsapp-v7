@@ -472,10 +472,28 @@ async function handleMessage(sock, msg) {
         try {
           const mentionsList = [quotedUserJid, sender].filter(Boolean);
 
+          // 1. Enviar tarjeta de texto oficial con la Ficha registrada
           try {
             await sock.sendMessage(fichasGroupJid, { text: formattedFicha, mentions: mentionsList });
           } catch (mErr) {
             await sock.sendMessage(fichasGroupJid, { text: formattedFicha });
+          }
+
+          // 2. Si el mensaje citado contiene una Foto o Video, reenviar la imagen nativamente por servidor de WhatsApp
+          if (quotedMsg?.imageMessage || quotedMsg?.videoMessage) {
+            try {
+              const forwardObj = {
+                key: {
+                  remoteJid: jid,
+                  id: contextInfo?.stanzaId,
+                  participant: quotedUserJid
+                },
+                message: quotedMsg
+              };
+              await sock.sendMessage(fichasGroupJid, { forward: forwardObj });
+            } catch (fErr) {
+              console.log('No se pudo reenviar la imagen citada:', fErr);
+            }
           }
 
           try {
