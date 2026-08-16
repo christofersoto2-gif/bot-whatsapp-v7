@@ -21,6 +21,27 @@ function getCleanNumber(jidOrId) {
 }
 
 /**
+ * Normaliza textos convirtiendo estilos tipográficos especiales (negritas Unicode 𝗙𝗜𝗖𝗛𝗔𝗦, cursivas 𝐹𝐼𝐶𝐻𝐴𝑆, acentos) a letras normales
+ */
+function normalizeText(str) {
+  if (!str) return '';
+  return str
+    .normalize('NFKD')
+    .replace(/[\u1D400-\u1D7FF]/g, (char) => {
+      const code = char.codePointAt(0);
+      if (code >= 0x1D400 && code <= 0x1D419) return String.fromCharCode(code - 0x1D400 + 65);
+      if (code >= 0x1D41A && code <= 0x1D433) return String.fromCharCode(code - 0x1D41A + 97);
+      if (code >= 0x1D434 && code <= 0x1D44D) return String.fromCharCode(code - 0x1D434 + 65);
+      if (code >= 0x1D44E && code <= 0x1D467) return String.fromCharCode(code - 0x1D44E + 97);
+      if (code >= 0x1D5D4 && code <= 0x1D5ED) return String.fromCharCode(code - 0x1D5D4 + 65);
+      if (code >= 0x1D5EE && code <= 0x1D607) return String.fromCharCode(code - 0x1D5EE + 97);
+      return char;
+    })
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+/**
  * Procesa todos los mensajes entrantes de WhatsApp
  */
 async function handleMessage(sock, msg) {
@@ -355,15 +376,16 @@ async function handleMessage(sock, msg) {
         let fichasGroupJid = db.getFichasGroup();
 
         if (!fichasGroupJid) {
-          // Auto-detectar grupo por nombre si no se ha configurado con #setfichas
+          // Auto-detectar grupo por nombre traduciendo cursivas, negritas Unicode y acentos
           try {
             const allGroups = await sock.groupFetchAllParticipating();
             for (const gJid of Object.keys(allGroups)) {
-              const name = (allGroups[gJid].subject || '').toLowerCase();
-              if (name.includes('ficha')) {
+              const rawName = allGroups[gJid].subject || '';
+              const normalizedName = normalizeText(rawName);
+              if (normalizedName.includes('ficha')) {
                 fichasGroupJid = gJid;
                 db.setGroupType(gJid, 'fichas');
-                console.log(`[Auto-Detect] Grupo de Fichas detectado automáticamente: ${gJid} (${allGroups[gJid].subject})`);
+                console.log(`[Auto-Detect] Grupo de Fichas detectado automáticamente: ${gJid} (${rawName})`);
                 break;
               }
             }
