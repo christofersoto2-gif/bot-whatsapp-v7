@@ -24,6 +24,18 @@ async function processQueue() {
   isProcessingQueue = false;
 }
 
+function parseDurationToSeconds(durationStr) {
+  if (!durationStr) return 180;
+  if (typeof durationStr === 'number') return durationStr;
+  const parts = String(durationStr).split(':').map(Number);
+  if (parts.length === 3) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  } else if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
+  }
+  return parseInt(durationStr) || 180;
+}
+
 module.exports = {
   async handleYtAudio(sock, jid, text) {
     const query = text.replace(new RegExp(`^${config.prefix}(ytaudio|play|musica)`, 'i'), '').trim();
@@ -49,18 +61,19 @@ module.exports = {
           `📌 *Título:* ${result.title}\n` +
           `👤 *Canal/Artista:* ${result.author}\n` +
           `⏱️ *Duración:* ${result.duration}\n\n` +
-          `⏳ *Generando reproductor de audio directo...*`;
+          `⏳ *Enviando audio al chat...*`;
 
         await sock.sendMessage(jid, { text: infoText });
 
-        // Convertir a Opus OGG nativo de WhatsApp (Universal para iPhone, Android, Xiaomi, Motorola, Samsung, Web)
-        const opusPath = await convertToOpusOgg(result.filePath);
-        const audioBuffer = await fs.readFile(opusPath);
+        const audioBuffer = await fs.readFile(result.filePath);
+        const durationSec = parseDurationToSeconds(result.duration);
 
-        // Enviar reproductor de audio directo nativo en el chat
+        // Enviar archivo de audio con metadatos de tamaño y duración para botón de descarga manual en celulares
         await sock.sendMessage(jid, {
           audio: audioBuffer,
-          mimetype: 'audio/ogg; codecs=opus',
+          mimetype: 'audio/mp4',
+          seconds: durationSec,
+          fileLength: audioBuffer.length,
           ptt: false
         });
 
