@@ -21,6 +21,20 @@ if (process.argv.includes('--clean')) {
   fs.removeSync(AUTH_DIR);
 }
 
+// Restauración Automática de Sesión Permanente desde Render Environment Variable (SESSION_DATA)
+const SESSION_DATA = process.env.SESSION_DATA;
+if (SESSION_DATA) {
+  try {
+    fs.ensureDirSync(AUTH_DIR);
+    const credsPath = path.join(AUTH_DIR, 'creds.json');
+    const decodedCreds = Buffer.from(SESSION_DATA.trim(), 'base64').toString('utf-8');
+    fs.writeFileSync(credsPath, decodedCreds);
+    console.log('🔑 ¡Sesión permanente de WhatsApp restaurada automáticamente desde Render SESSION_DATA!');
+  } catch (err) {
+    console.error('Error restaurando SESSION_DATA:', err.message);
+  }
+}
+
 let isConnecting = false;
 
 async function startBot() {
@@ -51,7 +65,20 @@ async function startBot() {
     getMessage: async () => undefined
   });
 
-  sock.ev.on('creds.update', saveCreds);
+  sock.ev.on('creds.update', async () => {
+    await saveCreds();
+    try {
+      const credsPath = path.join(AUTH_DIR, 'creds.json');
+      if (fs.existsSync(credsPath)) {
+        const credsContent = fs.readFileSync(credsPath, 'utf-8');
+        const base64Creds = Buffer.from(credsContent).toString('base64');
+        console.log('\n====================================================');
+        console.log('📌 TU CLAVE SESSION_DATA PERMANENTE PARA RENDER:');
+        console.log(base64Creds);
+        console.log('====================================================\n');
+      }
+    } catch (e) {}
+  });
 
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update;
