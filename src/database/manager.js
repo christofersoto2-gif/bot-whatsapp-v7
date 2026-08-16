@@ -339,16 +339,22 @@ class DatabaseManager {
     return group.poll;
   }
 
-  recordPollVote(groupId, userId, optionIndex) {
+  recordPollVote(groupId, userId, optionIndex, rawSender = null) {
     const group = this.getGroup(groupId);
     if (!group.poll) return false;
     
-    // Si optionIndex es null o -1, elimina el voto (deselección)
-    if (optionIndex === null || optionIndex < 0) {
-      delete group.poll.votes[userId];
-    } else {
-      group.poll.votes[userId] = optionIndex;
+    if (!group.poll.votes) group.poll.votes = {};
+
+    const keysToUpdate = [userId, rawSender].filter(Boolean);
+
+    for (const key of keysToUpdate) {
+      if (optionIndex === null || optionIndex < 0) {
+        delete group.poll.votes[key];
+      } else {
+        group.poll.votes[key] = optionIndex;
+      }
     }
+
     this.save();
     return true;
   }

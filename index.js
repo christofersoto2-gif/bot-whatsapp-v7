@@ -140,6 +140,25 @@ async function startBot() {
     }
   });
 
+  sock.ev.on('messages.update', async (updates) => {
+    for (const update of updates) {
+      if (update.pollUpdates || update.update?.message?.pollUpdateMessage) {
+        const pollUpd = update.pollUpdates?.[0] || update.update?.message?.pollUpdateMessage;
+        const msg = {
+          key: update.key || update.update?.key || pollUpd?.pollUpdateMessageKey,
+          message: {
+            pollUpdateMessage: pollUpd?.pollUpdateMessage || pollUpd
+          }
+        };
+        if (msg.key && msg.message) {
+          setImmediate(() => {
+            handleMessage(sock, msg).catch(err => console.error('Error procesando actualización de encuesta:', err));
+          });
+        }
+      }
+    }
+  });
+
   sock.ev.on('group-participants.update', async (update) => {
     try {
       await handleParticipantUpdate(sock, update);

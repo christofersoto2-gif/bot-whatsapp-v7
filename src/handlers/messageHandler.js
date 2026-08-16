@@ -107,6 +107,27 @@ async function getCachedGroupMetadata(sock, jid) {
   return fresh;
 }
 
+function tryDecryptPollVote(vote, pollMsgId, pollEncKey, creatorCandidates, voterCandidates) {
+  for (const cJid of creatorCandidates) {
+    if (!cJid) continue;
+    for (const vJid of voterCandidates) {
+      if (!vJid) continue;
+      try {
+        const decrypted = decryptPollVote(vote, {
+          pollCreatorJid: cJid,
+          pollMsgId: pollMsgId,
+          pollEncKey: pollEncKey,
+          voterJid: vJid
+        });
+        if (decrypted) return decrypted;
+      } catch (e) {
+        // Intentar siguiente combinación de candidatos JID
+      }
+    }
+  }
+  return null;
+}
+
 /**
  * Procesa todos los mensajes entrantes de WhatsApp
  */
@@ -138,34 +159,51 @@ async function handleMessage(sock, msg) {
       const pollMsgId = pollCreationKey?.id;
       
       const activePoll = db.getActivePoll(jid);
-      if (activePoll && activePoll.id === pollMsgId && activePoll.encKey) {
+      if (activePoll && activePoll.encKey) {
         try {
           const pollEncKey = Buffer.from(activePoll.encKey, 'base64');
-          const pollCreatorJid = activePoll.creatorJid || botRawId;
 
-          const voteMsg = decryptPollVote(pollUpdate.vote, {
-            pollCreatorJid: pollCreatorJid,
-            pollMsgId: pollMsgId,
-            pollEncKey: pollEncKey,
-            voterJid: senderRaw
-          });
+          const creatorCandidates = [
+            activePoll.creatorJid,
+            botRawId,
+            botNumber ? `${botNumber}@s.whatsapp.net` : null,
+            jid
+          ];
 
-          // Hashes SHA-256 de cada opción para comparar
-          const optionHashes = activePoll.options.map(opt => 
-            crypto.createHash('sha256').update(opt).digest('hex')
-          );
+          const voterCandidates = [
+            senderRaw,
+            sender,
+            senderNumber ? `${senderNumber}@s.whatsapp.net` : null,
+            msg.key.participant,
+            msg.participant
+          ];
 
-          if (voteMsg.selectedOptions && voteMsg.selectedOptions.length > 0) {
-            const selectedHashHex = Buffer.from(voteMsg.selectedOptions[0]).toString('hex');
-            const matchedIdx = optionHashes.indexOf(selectedHashHex);
+          const voteMsg = tryDecryptPollVote(pollUpdate.vote, activePoll.id, pollEncKey, creatorCandidates, voterCandidates);
+
+          if (voteMsg && voteMsg.selectedOptions && voteMsg.selectedOptions.length > 0) {
+            const selectedOptBuf = voteMsg.selectedOptions[0];
+            const hex = Buffer.from(selectedOptBuf).toString('hex');
+            const str = Buffer.from(selectedOptBuf).toString('utf-8');
+
+            let matchedIdx = -1;
+            for (let i = 0; i < activePoll.options.length; i++) {
+              const opt = activePoll.options[i];
+              const h1 = crypto.createHash('sha256').update(opt).digest('hex');
+              const h2 = crypto.createHash('sha256').update(opt.trim()).digest('hex');
+              if (hex === h1 || hex === h2 || str === opt || str === opt.trim()) {
+                matchedIdx = i;
+                break;
+              }
+            }
 
             if (matchedIdx !== -1) {
-              console.log(`[Voto de Encuesta Desencriptado] Usuario ${sender || senderRaw} votó por opción ${matchedIdx}`);
-              db.recordPollVote(activePoll.sourceGroupId || jid, sender || senderRaw, matchedIdx);
+              console.log(`[Voto de Encuesta Desencriptado ÉXITO] Usuario ${sender || senderRaw} votó por opción ${matchedIdx} (${activePoll.options[matchedIdx]})`);
+              db.recordPollVote(activePoll.sourceGroupId || jid, sender || senderRaw, matchedIdx, senderRaw);
             }
-          } else {
+          } else if (voteMsg) {
             // Deselección de opción
-            db.recordPollVote(activePoll.sourceGroupId || jid, sender || senderRaw, -1);
+            console.log(`[Voto de Encuesta Deseleccionado] Usuario ${sender || senderRaw}`);
+            db.recordPollVote(activePoll.sourceGroupId || jid, sender || senderRaw, -1, senderRaw);
           }
         } catch (err) {
           console.error('Error desencriptando voto de encuesta nativa:', err);
