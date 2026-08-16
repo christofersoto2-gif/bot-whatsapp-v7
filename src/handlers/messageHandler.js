@@ -425,9 +425,9 @@ async function handleMessage(sock, msg) {
         }
 
         const quotedUserJid = contextInfo?.participant || contextInfo?.quotedParticipant || targetUser;
-        console.log(`[APROBAR] quotedMsg: ${!!quotedMsg}, quotedUserJid: ${quotedUserJid}`);
+        console.log(`[APROBAR] quotedMsg: ${!!quotedMsg}, quotedUserJid: ${quotedUserJid}, quotedText: ${!!quotedText}`);
 
-        if (!quotedMsg && !quotedUserJid) {
+        if (!quotedMsg && !quotedUserJid && !quotedText) {
           return sock.sendMessage(jid, { text: '⚠️ *Uso correcto:* Responde a la Ficha o Captura llenada por el postulante y escribe *#aprobar* (o *#aceptar*).' });
         }
 
@@ -441,7 +441,6 @@ async function handleMessage(sock, msg) {
             for (const gJid of Object.keys(allGroups)) {
               const rawName = allGroups[gJid].subject || '';
               const normalizedName = normalizeText(rawName);
-              console.log(` Grupo JID: ${gJid} | Nombre: "${rawName}" | Normalizado: "${normalizedName}"`);
               if (normalizedName.includes('ficha')) {
                 fichasGroupJid = gJid;
                 db.setGroupType(gJid, 'fichas');
@@ -462,7 +461,7 @@ async function handleMessage(sock, msg) {
         const adminNum = senderNumber || 'Admin';
         const dateStr = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-        const captionHeader = quotedMsg?.imageMessage ? `📷 *CAPTURA / FICHA DE PERFIL - DYNASTY V7* 📷` : `📋 *NUEVA FICHA ACEPTADA - DYNASTY V7* 📋`;
+        const captionHeader = quotedMsg?.imageMessage ? `📷 *CAPTURA / FICHA ACEPTADA - DYNASTY V7* 📷` : `📋 *NUEVA FICHA ACEPTADA - DYNASTY V7* 📋`;
 
         const formattedFicha = `${captionHeader}\n\n` +
           `👤 *Miembro Aceptado:* @${applicantNum}\n` +
@@ -471,37 +470,12 @@ async function handleMessage(sock, msg) {
           (quotedText ? `─────────── 📄 FICHA REGISTRADA ───────────\n\n${quotedText}` : '');
 
         try {
-          let mediaSent = false;
           const mentionsList = [quotedUserJid, sender].filter(Boolean);
 
-          if (quotedMsg?.imageMessage) {
-            const buffer = await safeDownloadMedia(quotedMsg.imageMessage, 'image');
-            if (buffer) {
-              try {
-                await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha, mentions: mentionsList });
-              } catch (mErr) {
-                await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha });
-              }
-              mediaSent = true;
-            }
-          } else if (quotedMsg?.videoMessage) {
-            const buffer = await safeDownloadMedia(quotedMsg.videoMessage, 'video');
-            if (buffer) {
-              try {
-                await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha, mentions: mentionsList });
-              } catch (mErr) {
-                await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha });
-              }
-              mediaSent = true;
-            }
-          }
-
-          if (!mediaSent) {
-            try {
-              await sock.sendMessage(fichasGroupJid, { text: formattedFicha, mentions: mentionsList });
-            } catch (mErr) {
-              await sock.sendMessage(fichasGroupJid, { text: formattedFicha });
-            }
+          try {
+            await sock.sendMessage(fichasGroupJid, { text: formattedFicha, mentions: mentionsList });
+          } catch (mErr) {
+            await sock.sendMessage(fichasGroupJid, { text: formattedFicha });
           }
 
           try {
