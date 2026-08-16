@@ -66,11 +66,12 @@ module.exports = {
           `┆ ❒ Tamaño: *${fileSizeMb}MB*\n` +
           `┆ 🔗 URL: ${result.url}`;
 
-        // 2. Enviar tarjeta con imagen de miniatura de YouTube (Thumbnail)
+        // 2. Usar miniatura ligera (sddefault) de 15KB en lugar de 4MB HD para respuesta ultrarrápida y mínimo uso de RAM
         let imgSent = false;
         if (result.thumbnail) {
           try {
-            const imgRes = await fetch(result.thumbnail);
+            const lightThumbUrl = result.thumbnail.replace('maxresdefault.jpg', 'sddefault.jpg').replace('hqdefault.jpg', 'sddefault.jpg');
+            const imgRes = await fetch(lightThumbUrl);
             if (imgRes.ok) {
               const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
               await sock.sendMessage(jid, { 

@@ -233,11 +233,12 @@ async function convertToM4a(inputPath) {
       .audioCodec('aac')
       .audioBitrate('128k')
       .outputOptions([
+        '-preset', 'ultrafast',
         '-map_metadata', '-1',
         '-movflags', '+faststart'
       ])
       .on('end', () => {
-        console.log(`[FFmpeg] M4A AAC faststart generado con éxito para iOS/Android: ${outputPath}`);
+        console.log(`[FFmpeg] M4A AAC faststart ultrafast generado con éxito para iOS/Android: ${outputPath}`);
         resolve(outputPath);
       })
       .on('error', (err) => {
