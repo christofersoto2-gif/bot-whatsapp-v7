@@ -3,13 +3,49 @@ const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
 
+const MUSIC_CACHE_DIR = path.join(__dirname, '../../cache/music');
+const MUSIC_INDEX_PATH = path.join(__dirname, '../../cache/music_index.json');
+
+// Asegurar directorios de caché
+fs.ensureDirSync(MUSIC_CACHE_DIR);
+
+function getCacheIndex() {
+  try {
+    if (fs.existsSync(MUSIC_INDEX_PATH)) {
+      return fs.readJsonSync(MUSIC_INDEX_PATH);
+    }
+  } catch (e) {}
+  return {};
+}
+
+function saveCacheIndex(index) {
+  try {
+    fs.writeJsonSync(MUSIC_INDEX_PATH, index, { spaces: 2 });
+  } catch (e) {}
+}
+
 /**
- * Busca en YouTube y descarga el audio MP3 usando adonix-scraper + yt-search
+ * Busca en YouTube y descarga el audio MP3 usando caché ultrarrápida + adonix-scraper + yt-search
  * @param {string} query Nombre de la canción o cantante
- * @returns {Promise<{ filePath: string, title: string, duration: string, author: string, thumbnail: string, url: string }>}
+ * @returns {Promise<{ filePath: string, title: string, duration: string, author: string, thumbnail: string, url: string, cached?: boolean }>}
  */
 async function searchAndDownloadAudio(query) {
   try {
+    const cleanKey = query.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+    const cacheIndex = getCacheIndex();
+
+    // 1. Verificar si la canción ya existe en el Sistema de Caché local
+    if (cleanKey && cacheIndex[cleanKey]) {
+      const cachedData = cacheIndex[cleanKey];
+      if (fs.existsSync(cachedData.filePath)) {
+        console.log(`[Caché de Música] ¡Canción Servida Instantáneamente desde Caché!: "${query}"`);
+        return {
+          ...cachedData,
+          cached: true
+        };
+      }
+    }
+
     const adonix = await import('adonix-scraper');
     let videoUrl = query;
     let videoInfo = null;
@@ -58,10 +94,9 @@ async function searchAndDownloadAudio(query) {
     const author = videoInfo ? videoInfo.author.name : 'YouTube';
     const thumbnail = videoInfo ? videoInfo.thumbnail : '';
 
-    // Descargar el archivo MP3 al directorio temporal local
-    const tmpDir = os.tmpdir();
-    const fileName = `yt_audio_${Date.now()}.mp3`;
-    const filePath = path.join(tmpDir, fileName);
+    // Guardar el archivo MP3 en el directorio de caché local
+    const fileName = `song_${Date.now()}_${cleanKey.slice(0, 15)}.mp3`;
+    const filePath = path.join(MUSIC_CACHE_DIR, fileName);
 
     const response = await fetch(dlUrl);
     if (!response.ok) {
@@ -72,13 +107,24 @@ async function searchAndDownloadAudio(query) {
     const buffer = Buffer.from(arrayBuffer);
     await fs.writeFile(filePath, buffer);
 
-    return {
+    const resultObj = {
       filePath,
       title,
       duration,
       author,
       thumbnail,
       url: videoUrl
+    };
+
+    // Guardar en el índice de caché
+    if (cleanKey) {
+      cacheIndex[cleanKey] = resultObj;
+      saveCacheIndex(cacheIndex);
+    }
+
+    return {
+      ...resultObj,
+      cached: false
     };
   } catch (err) {
     console.error('Error en downloader.js:', err);

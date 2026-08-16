@@ -17,7 +17,11 @@ module.exports = {
     try {
       const result = await searchAndDownloadAudio(query);
 
-      const infoText = `🎵 *CANCIÓN ENCONTRADA EN YOUTUBE* 🎵\n\n` +
+      const infoHeader = result.cached 
+        ? `⚡ *CANCIÓN RECUPERADA DE CACHÉ ULTRARRÁPIDA (0 SEG DELAY)* ⚡` 
+        : `🎵 *CANCIÓN ENCONTRADA EN YOUTUBE* 🎵`;
+
+      const infoText = `${infoHeader}\n\n` +
         `📌 *Título:* ${result.title}\n` +
         `👤 *Canal/Artista:* ${result.author}\n` +
         `⏱️ *Duración:* ${result.duration}\n\n` +
@@ -43,11 +47,6 @@ module.exports = {
           ptt: false
         });
       } catch (e) {}
-
-      // Limpieza del archivo temporal tras 5 minutos (da tiempo a la descarga móvil en segundo plano)
-      setTimeout(() => {
-        fs.remove(result.filePath).catch(() => {});
-      }, 300000);
 
     } catch (err) {
       console.error('Error en #ytaudio:', err);
