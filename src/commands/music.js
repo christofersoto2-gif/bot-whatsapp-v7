@@ -55,8 +55,8 @@ module.exports = {
 
         // 1. Aplicar la Fórmula Mágica Definitiva de FFmpeg (-c:a aac -b:a 128k -map_metadata -1 -movflags +faststart)
         const m4aPath = await convertToM4a(result.filePath);
-        const m4aBuffer = await fs.readFile(m4aPath);
-        const fileSizeMb = (m4aBuffer.length / (1024 * 1024)).toFixed(2);
+        const stats = await fs.stat(m4aPath);
+        const fileSizeMb = (stats.size / (1024 * 1024)).toFixed(2);
         const durationSec = parseDurationToSeconds(result.duration);
 
         const infoCaption = 
@@ -87,12 +87,12 @@ module.exports = {
           await sock.sendMessage(jid, { text: infoCaption });
         }
 
-        // 3. Enviar archivo M4A AAC nativo de Apple para iPhone iOS, Android y Web (mimetype: 'audio/mp4', ptt: false)
+        // 3. Pasar { url: m4aPath } para que Baileys lea la ruta del archivo fisico preservando la cabecera moov atom de faststart para iPhones iOS
         await sock.sendMessage(jid, {
-          audio: m4aBuffer,
+          audio: { url: m4aPath },
           mimetype: 'audio/mp4',
           seconds: durationSec,
-          fileLength: m4aBuffer.length,
+          fileLength: stats.size,
           ptt: false
         });
 
