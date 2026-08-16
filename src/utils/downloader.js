@@ -23,13 +23,37 @@ async function searchAndDownloadAudio(query) {
       videoUrl = videoInfo.url;
     }
 
-    // Obtener enlace directo de descarga MP3 vía adonix-scraper
-    const dlData = await adonix.adonixytdl(videoUrl);
-    if (!dlData || !dlData.mp3) {
-      throw new Error('No se pudo obtener el enlace de descarga de audio.');
+    // Obtener enlace directo de descarga MP3 vía adonix-scraper o servidores de respaldo
+    let dlData = null;
+    try {
+      dlData = await adonix.adonixytdl(videoUrl);
+    } catch (e) {}
+
+    let dlUrl = dlData?.mp3;
+
+    if (!dlUrl) {
+      // Servidor de respaldo 1 (Vreden)
+      try {
+        const res2 = await fetch(`https://api.vreden.web.id/api/ytmp3?url=${encodeURIComponent(videoUrl)}`);
+        const data2 = await res2.json();
+        if (data2?.result?.download?.url) dlUrl = data2.result.download.url;
+      } catch (e) {}
     }
 
-    const title = videoInfo ? videoInfo.title : (dlData.title || 'Audio de YouTube');
+    if (!dlUrl) {
+      // Servidor de respaldo 2 (Siputzx)
+      try {
+        const res3 = await fetch(`https://api.siputzx.my.id/api/d/ytmp3?url=${encodeURIComponent(videoUrl)}`);
+        const data3 = await res3.json();
+        if (data3?.data?.dl) dlUrl = data3.data.dl;
+      } catch (e) {}
+    }
+
+    if (!dlUrl) {
+      throw new Error('No se pudo obtener el enlace de descarga de audio desde los servidores de música.');
+    }
+
+    const title = videoInfo ? videoInfo.title : (dlData?.title || 'Audio de YouTube');
     const duration = videoInfo ? videoInfo.timestamp : 'Audio';
     const author = videoInfo ? videoInfo.author.name : 'YouTube';
     const thumbnail = videoInfo ? videoInfo.thumbnail : '';
@@ -39,7 +63,7 @@ async function searchAndDownloadAudio(query) {
     const fileName = `yt_audio_${Date.now()}.mp3`;
     const filePath = path.join(tmpDir, fileName);
 
-    const response = await fetch(dlData.mp3);
+    const response = await fetch(dlUrl);
     if (!response.ok) {
       throw new Error(`Error en el servidor de música (Código HTTP ${response.status})`);
     }

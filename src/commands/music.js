@@ -25,10 +25,12 @@ module.exports = {
 
       await sock.sendMessage(jid, { text: infoText });
 
-      // Enviar archivo de audio directamente al chat
+      // Enviar archivo de audio directamente al chat usando Buffer y mimetype estándar audio/mpeg
+      const audioBuffer = await fs.readFile(result.filePath);
       await sock.sendMessage(jid, {
-        audio: { url: result.filePath },
-        mimetype: 'audio/mp4',
+        audio: audioBuffer,
+        mimetype: 'audio/mpeg',
+        fileName: `${result.title}.mp3`,
         ptt: false
       });
 
