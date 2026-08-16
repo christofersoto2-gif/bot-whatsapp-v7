@@ -95,11 +95,9 @@ async function startBot() {
   sock.ev.on('messages.upsert', async (m) => {
     if (m.type === 'notify' || m.type === 'append') {
       for (const msg of m.messages) {
-        try {
-          await handleMessage(sock, msg);
-        } catch (err) {
-          console.error('Error procesando mensaje:', err);
-        }
+        setImmediate(() => {
+          handleMessage(sock, msg).catch(err => console.error('Error procesando mensaje:', err));
+        });
       }
     }
   });
