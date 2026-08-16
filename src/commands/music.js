@@ -1,4 +1,4 @@
-const { searchAndDownloadAudio, convertToOpusOgg, uploadToCdn } = require('../utils/downloader');
+const { searchAndDownloadAudio, convertToMp3 } = require('../utils/downloader');
 const config = require('../../config');
 const fs = require('fs-extra');
 
@@ -53,9 +53,11 @@ module.exports = {
       try {
         const result = await searchAndDownloadAudio(query);
 
-        // Convertir a Opus OGG nativo de WhatsApp
-        const opusPath = await convertToOpusOgg(result.filePath);
-        const fileSizeMb = ((await fs.stat(opusPath)).size / (1024 * 1024)).toFixed(2);
+        // 1. Convertir a MP3 limpio codificado con FFmpeg (libmp3lame -q:a 2)
+        const cleanMp3Path = await convertToMp3(result.filePath);
+        const mp3Buffer = await fs.readFile(cleanMp3Path);
+        const fileSizeMb = (mp3Buffer.length / (1024 * 1024)).toFixed(2);
+        const durationSec = parseDurationToSeconds(result.duration);
 
         const infoCaption = 
           `┌✦」 Descargando <*${result.title}*>\n` +
@@ -64,7 +66,7 @@ module.exports = {
           `┆ ❒ Tamaño: *${fileSizeMb}MB*\n` +
           `┆ 🔗 URL: ${result.url}`;
 
-        // 1. Enviar tarjeta con imagen de miniatura de YouTube (Thumbnail) deshabilitando el generador C++ (sharp/libvips) con jpegThumbnail vacio
+        // 2. Enviar tarjeta con imagen de miniatura de YouTube (Thumbnail)
         let imgSent = false;
         if (result.thumbnail) {
           try {
@@ -85,18 +87,13 @@ module.exports = {
           await sock.sendMessage(jid, { text: infoCaption });
         }
 
-        // 2. Enviar la nota de voz PTT (ptt: true) con buffer de waveform nativo (Resuelve compatibilidad nativa en iPhone iOS)
-        const durationSec = parseDurationToSeconds(result.duration);
-        const opusBuffer = await fs.readFile(opusPath);
-        const waveform = Buffer.from(Array.from({ length: 64 }, () => Math.floor(Math.random() * 50) + 10));
-
+        // 3. El Truco Nativo de Baileys para iPhone (iOS) y Android: MP3 limpio con mimetype audio/mp4 y ptt: false
         await sock.sendMessage(jid, {
-          audio: opusBuffer,
-          mimetype: 'audio/ogg; codecs=opus',
+          audio: mp3Buffer,
+          mimetype: 'audio/mp4',
           seconds: durationSec,
-          fileLength: opusBuffer.length,
-          ptt: true,
-          waveform: waveform
+          fileLength: mp3Buffer.length,
+          ptt: false
         });
 
       } catch (err) {

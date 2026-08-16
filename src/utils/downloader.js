@@ -192,8 +192,35 @@ async function uploadToCdn(filePath) {
   return null;
 }
 
+/**
+ * Convierte el audio descargado a un MP3 limpio codificado con libmp3lame (FFmpeg)
+ * (Truco nativo de Baileys con mimetype audio/mp4 para reproduccion directa en iPhones iOS)
+ */
+async function convertToMp3(inputPath) {
+  if (!inputPath || !fs.existsSync(inputPath)) return inputPath;
+  const outputPath = inputPath.replace(/\.[a-z0-9]+$/i, '_clean.mp3');
+  if (fs.existsSync(outputPath)) return outputPath;
+
+  return new Promise((resolve) => {
+    ffmpeg(inputPath)
+      .noVideo()
+      .audioCodec('libmp3lame')
+      .audioQuality(2)
+      .on('end', () => {
+        console.log(`[FFmpeg] MP3 limpio generado con éxito para iOS (libmp3lame): ${outputPath}`);
+        resolve(outputPath);
+      })
+      .on('error', (err) => {
+        console.error('Error en conversión MP3 libmp3lame:', err.message);
+        resolve(inputPath);
+      })
+      .save(outputPath);
+  });
+}
+
 module.exports = {
   searchAndDownloadAudio,
   convertToOpusOgg,
+  convertToMp3,
   uploadToCdn
 };
