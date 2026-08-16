@@ -68,13 +68,13 @@ module.exports = {
         const audioBuffer = await fs.readFile(result.filePath);
         const durationSec = parseDurationToSeconds(result.duration);
 
-        // Enviar archivo de audio con metadatos de tamaño y duración para botón de descarga manual en celulares
+        const cleanFileName = (result.title || 'cancion').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'cancion';
+
+        // Enviar como Documento MP3 Oficial (Elimina el choque con la función "Transcribir" de iOS y activa la flechita de descarga manual ⬇️)
         await sock.sendMessage(jid, {
-          audio: audioBuffer,
-          mimetype: 'audio/mp4',
-          seconds: durationSec,
-          fileLength: audioBuffer.length,
-          ptt: false
+          document: audioBuffer,
+          mimetype: 'audio/mpeg',
+          fileName: `${cleanFileName}.mp3`
         });
 
       } catch (err) {
