@@ -85,16 +85,28 @@ module.exports = {
           await sock.sendMessage(jid, { text: infoCaption });
         }
 
-        // 2. Enviar la nota de voz PTT (ptt: true) con metadatos de duracion exactos
+        // 2. Enviar la nota de voz PTT (ptt: true) para Android, Web y PC
         const durationSec = parseDurationToSeconds(result.duration);
-        const fileBuffer = await fs.readFile(opusPath);
+        const opusBuffer = await fs.readFile(opusPath);
+
+        try {
+          await sock.sendMessage(jid, {
+            audio: opusBuffer,
+            mimetype: 'audio/ogg; codecs=opus',
+            seconds: durationSec,
+            fileLength: opusBuffer.length,
+            ptt: true
+          });
+        } catch (e) {}
+
+        // 3. Enviar Documento MP3 adjunto (Compatibilidad 100% obligatoria para iPhone iOS sin error de Apple)
+        const rawMp3Buffer = await fs.readFile(result.filePath);
+        const cleanFileName = (result.title || 'cancion').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'cancion';
 
         await sock.sendMessage(jid, {
-          audio: fileBuffer,
-          mimetype: 'audio/ogg; codecs=opus',
-          seconds: durationSec,
-          fileLength: fileBuffer.length,
-          ptt: true
+          document: rawMp3Buffer,
+          mimetype: 'audio/mpeg',
+          fileName: `${cleanFileName}.mp3`
         });
 
       } catch (err) {
