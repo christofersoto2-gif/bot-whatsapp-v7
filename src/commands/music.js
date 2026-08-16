@@ -65,23 +65,38 @@ module.exports = {
           `┆ ❒ Tamaño: *${fileSizeMb}MB*\n` +
           `┆ 🔗 URL: ${result.url}`;
 
-        // 1. Enviar tarjeta con imagen de miniatura de YouTube (Thumbnail) idéntica a la captura
+        // 1. Enviar tarjeta con imagen de miniatura de YouTube (Thumbnail) descargada en Buffer para prevenir fallos C++ (GLib)
+        let imgSent = false;
         if (result.thumbnail) {
           try {
-            await sock.sendMessage(jid, { image: { url: result.thumbnail }, caption: infoCaption });
-          } catch (e) {
-            await sock.sendMessage(jid, { text: infoCaption });
-          }
-        } else {
+            const imgRes = await fetch(result.thumbnail);
+            if (imgRes.ok) {
+              const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+              await sock.sendMessage(jid, { image: imgBuffer, caption: infoCaption });
+              imgSent = true;
+            }
+          } catch (e) {}
+        }
+        
+        if (!imgSent) {
           await sock.sendMessage(jid, { text: infoCaption });
         }
 
-        // 2. Enviar el reproductor de voz con micrófono azul (ptt: true) en formato Opus OGG nativo
-        await sock.sendMessage(jid, {
-          audio: opusBuffer,
-          mimetype: 'audio/ogg; codecs=opus',
-          ptt: true
-        });
+        // 2. Enviar el reproductor de voz PTT (ptt: true) nativo de WhatsApp
+        try {
+          await sock.sendMessage(jid, {
+            audio: opusBuffer,
+            mimetype: 'audio/ogg; codecs=opus',
+            ptt: true
+          });
+        } catch (aErr) {
+          const rawBuffer = await fs.readFile(result.filePath);
+          await sock.sendMessage(jid, {
+            audio: rawBuffer,
+            mimetype: 'audio/mp4',
+            ptt: true
+          });
+        }
 
       } catch (err) {
         console.error('Error en #ytaudio:', err);
