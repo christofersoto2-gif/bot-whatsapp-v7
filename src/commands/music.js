@@ -29,24 +29,14 @@ module.exports = {
 
       await sock.sendMessage(jid, { text: infoText });
 
-      // Enviar archivo de audio y Documento MP3 para compatibilidad total con iPhone (iOS) y Android
+      // Enviar archivo de audio universal compatible con iPhone (iOS CoreAudio), Android y Web
       const audioBuffer = await fs.readFile(result.filePath);
 
-      // 1. Enviar como Documento MP3 (Garantiza 100% de compatibilidad en iPhone / iOS y nunca expira)
       await sock.sendMessage(jid, {
-        document: audioBuffer,
+        audio: audioBuffer,
         mimetype: 'audio/mpeg',
-        fileName: `${result.title.replace(/[^a-zA-Z0-9 ]/g, '')}.mp3`
+        ptt: false
       });
-
-      // 2. Enviar reproductor de audio directo para Android / Web
-      try {
-        await sock.sendMessage(jid, {
-          audio: audioBuffer,
-          mimetype: 'audio/mp4',
-          ptt: false
-        });
-      } catch (e) {}
 
     } catch (err) {
       console.error('Error en #ytaudio:', err);
