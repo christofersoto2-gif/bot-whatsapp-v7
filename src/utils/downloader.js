@@ -132,6 +132,38 @@ async function searchAndDownloadAudio(query) {
   }
 }
 
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+const ffmpeg = require('fluent-ffmpeg');
+ffmpeg.setFfmpegPath(ffmpegPath);
+
+/**
+ * Convierte cualquier archivo de audio (MP3) al formato nativo Opus OGG de WhatsApp
+ * (Garantiza reproducción directa en iPhone iOS, Xiaomi, Motorola, Samsung y Web como nota/reproductor nativo)
+ */
+async function convertToOpusOgg(inputPath) {
+  if (!inputPath || !fs.existsSync(inputPath)) return inputPath;
+  const outputPath = inputPath.replace(/\.mp3$/i, '.opus');
+  if (fs.existsSync(outputPath)) return outputPath;
+
+  return new Promise((resolve) => {
+    ffmpeg(inputPath)
+      .toFormat('ogg')
+      .audioCodec('libopus')
+      .audioChannels(2)
+      .audioFrequency(48000)
+      .on('end', () => {
+        console.log(`[FFmpeg] Audio convertido nativamente a Opus OGG para WhatsApp: ${outputPath}`);
+        resolve(outputPath);
+      })
+      .on('error', (err) => {
+        console.error('Error en conversión de audio Opus OGG:', err.message);
+        resolve(inputPath);
+      })
+      .save(outputPath);
+  });
+}
+
 module.exports = {
-  searchAndDownloadAudio
+  searchAndDownloadAudio,
+  convertToOpusOgg
 };

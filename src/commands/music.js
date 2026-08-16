@@ -1,4 +1,4 @@
-const { searchAndDownloadAudio } = require('../utils/downloader');
+const { searchAndDownloadAudio, convertToOpusOgg } = require('../utils/downloader');
 const config = require('../../config');
 const fs = require('fs-extra');
 
@@ -49,18 +49,19 @@ module.exports = {
           `📌 *Título:* ${result.title}\n` +
           `👤 *Canal/Artista:* ${result.author}\n` +
           `⏱️ *Duración:* ${result.duration}\n\n` +
-          `⏳ *Enviando audio al chat...*`;
+          `⏳ *Generando reproductor de audio directo...*`;
 
         await sock.sendMessage(jid, { text: infoText });
 
-        // Enviar archivo de audio como Documento MP3 Oficial (Formato 100% compatible con iPhone iOS, Android y WhatsApp Web)
-        const audioBuffer = await fs.readFile(result.filePath);
-        const cleanFileName = (result.title || 'cancion').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'cancion';
+        // Convertir a Opus OGG nativo de WhatsApp (Universal para iPhone, Android, Xiaomi, Motorola, Samsung, Web)
+        const opusPath = await convertToOpusOgg(result.filePath);
+        const audioBuffer = await fs.readFile(opusPath);
 
+        // Enviar reproductor de audio directo nativo en el chat
         await sock.sendMessage(jid, {
-          document: audioBuffer,
-          mimetype: 'audio/mpeg',
-          fileName: `${cleanFileName}.mp3`
+          audio: audioBuffer,
+          mimetype: 'audio/ogg; codecs=opus',
+          ptt: false
         });
 
       } catch (err) {
