@@ -324,12 +324,14 @@ class DatabaseManager {
   }
 
   // --- VOTACIONES & ENCUESTAS DE EVENTO ---
-  createPoll(groupId, pollId, title, options) {
+  createPoll(groupId, pollId, title, options, encKey = null, creatorJid = null) {
     const group = this.getGroup(groupId);
     group.poll = {
       id: pollId,
       title,
       options,
+      encKey: encKey ? (Buffer.isBuffer(encKey) ? encKey.toString('base64') : encKey) : null,
+      creatorJid: creatorJid || null,
       votes: {},
       createdAt: Date.now()
     };

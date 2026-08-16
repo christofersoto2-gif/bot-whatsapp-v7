@@ -44,7 +44,10 @@ module.exports = {
     });
 
     const pollId = pollMessage.key.id;
-    db.createPoll(jid, pollId, title, options);
+    const encKey = pollMessage.message?.pollCreationMessage?.encKey;
+    const creatorJid = pollMessage.key.participant || (pollMessage.key.fromMe ? sock.user?.id : null);
+
+    db.createPoll(jid, pollId, title, options, encKey, creatorJid);
 
     await sock.sendMessage(jid, {
       text: `📢 *¡NUEVA VOTACIÓN OFICIAL PUBLICADA!*\n\n` +

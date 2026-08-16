@@ -1,4 +1,5 @@
-const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+const { downloadContentFromMessage, decryptPollVote } = require('@whiskeysockets/baileys');
+const crypto = require('crypto');
 const config = require('../../config');
 const db = require('../database/manager');
 const clanCmd = require('../commands/clan');
@@ -129,6 +130,49 @@ async function handleMessage(sock, msg) {
     const senderNumber = getCleanNumber(senderRaw);
     const botNumber = getCleanNumber(botRawId);
     const sender = senderNumber ? `${senderNumber}@s.whatsapp.net` : '';
+
+    // Procesar votos de encuestas nativas de WhatsApp (pollUpdateMessage)
+    if (msg.message?.pollUpdateMessage) {
+      const pollUpdate = msg.message.pollUpdateMessage;
+      const pollCreationKey = pollUpdate.pollCreationMessageKey;
+      const pollMsgId = pollCreationKey?.id;
+      
+      const activePoll = db.getActivePoll(jid);
+      if (activePoll && activePoll.id === pollMsgId && activePoll.encKey) {
+        try {
+          const pollEncKey = Buffer.from(activePoll.encKey, 'base64');
+          const pollCreatorJid = activePoll.creatorJid || botRawId;
+
+          const voteMsg = decryptPollVote(pollUpdate.vote, {
+            pollCreatorJid: pollCreatorJid,
+            pollMsgId: pollMsgId,
+            pollEncKey: pollEncKey,
+            voterJid: senderRaw
+          });
+
+          // Hashes SHA-256 de cada opción para comparar
+          const optionHashes = activePoll.options.map(opt => 
+            crypto.createHash('sha256').update(opt).digest('hex')
+          );
+
+          if (voteMsg.selectedOptions && voteMsg.selectedOptions.length > 0) {
+            const selectedHashHex = Buffer.from(voteMsg.selectedOptions[0]).toString('hex');
+            const matchedIdx = optionHashes.indexOf(selectedHashHex);
+
+            if (matchedIdx !== -1) {
+              console.log(`[Voto de Encuesta Desencriptado] Usuario ${sender || senderRaw} votó por opción ${matchedIdx}`);
+              db.recordPollVote(activePoll.sourceGroupId || jid, sender || senderRaw, matchedIdx);
+            }
+          } else {
+            // Deselección de opción
+            db.recordPollVote(activePoll.sourceGroupId || jid, sender || senderRaw, -1);
+          }
+        } catch (err) {
+          console.error('Error desencriptando voto de encuesta nativa:', err);
+        }
+      }
+      return;
+    }
 
     // Obtener texto del mensaje
     let body = '';
