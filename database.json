@@ -504,14 +504,12 @@
     "120363427085406980@g.us": {
       "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
       "welcome": true,
-      "vs": null,
-      "groupType": "fichas"
+      "vs": null
     },
     "120363426685369948@g.us": {
       "rules": "Aún no se han definido las reglas del clan. Usa #setrules <reglas> para establecerlas.",
       "welcome": true,
-      "vs": null,
-      "groupType": "fichas"
+      "vs": null
     }
   }
 }

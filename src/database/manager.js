@@ -150,6 +150,14 @@ class DatabaseManager {
   }
 
   setGroupType(groupId, groupType) {
+    if (groupType === 'fichas') {
+      // Remover el rol de fichas de cualquier otro grupo anterior
+      for (const id of Object.keys(this.data.groups)) {
+        if (this.data.groups[id].groupType === 'fichas') {
+          delete this.data.groups[id].groupType;
+        }
+      }
+    }
     const group = this.getGroup(groupId);
     group.groupType = groupType;
     this.save();
