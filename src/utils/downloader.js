@@ -163,7 +163,37 @@ async function convertToOpusOgg(inputPath) {
   });
 }
 
+/**
+ * Sube el archivo de audio a un CDN público de alta velocidad (tmpfiles.org)
+ * para generar un enlace de descarga directa reconocido por los servidores de WhatsApp de todo el mundo.
+ */
+async function uploadToCdn(filePath) {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) return null;
+    const fileBuffer = await fs.readFile(filePath);
+    const fileName = path.basename(filePath);
+    const formData = new FormData();
+    formData.append('file', new Blob([fileBuffer]), fileName);
+
+    const res = await fetch('https://tmpfiles.org/api/v1/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    const json = await res.json();
+    if (json?.data?.url) {
+      const directUrl = json.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+      console.log(`[CDN Uplink] ¡Audio alojado con éxito en CDN de alta velocidad!: ${directUrl}`);
+      return directUrl;
+    }
+  } catch (err) {
+    console.error('Error subiendo audio a CDN:', err.message);
+  }
+  return null;
+}
+
 module.exports = {
   searchAndDownloadAudio,
-  convertToOpusOgg
+  convertToOpusOgg,
+  uploadToCdn
 };

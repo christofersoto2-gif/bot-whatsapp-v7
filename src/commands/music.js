@@ -1,4 +1,4 @@
-const { searchAndDownloadAudio, convertToOpusOgg } = require('../utils/downloader');
+const { searchAndDownloadAudio, convertToOpusOgg, uploadToCdn } = require('../utils/downloader');
 const config = require('../../config');
 const fs = require('fs-extra');
 
@@ -53,10 +53,9 @@ module.exports = {
       try {
         const result = await searchAndDownloadAudio(query);
 
-        // Convertir a Opus OGG para garantizar reproductor PTT idéntico al bot anterior
+        // Convertir a Opus OGG nativo de WhatsApp
         const opusPath = await convertToOpusOgg(result.filePath);
-        const opusBuffer = await fs.readFile(opusPath);
-        const fileSizeMb = (opusBuffer.length / (1024 * 1024)).toFixed(2);
+        const fileSizeMb = ((await fs.stat(opusPath)).size / (1024 * 1024)).toFixed(2);
 
         const infoCaption = 
           `┌✦」 Descargando <*${result.title}*>\n` +
@@ -86,21 +85,16 @@ module.exports = {
           await sock.sendMessage(jid, { text: infoCaption });
         }
 
-        // 2. Enviar el reproductor de voz PTT (ptt: true) nativo de WhatsApp
-        try {
-          await sock.sendMessage(jid, {
-            audio: opusBuffer,
-            mimetype: 'audio/ogg; codecs=opus',
-            ptt: true
-          });
-        } catch (aErr) {
-          const rawBuffer = await fs.readFile(result.filePath);
-          await sock.sendMessage(jid, {
-            audio: rawBuffer,
-            mimetype: 'audio/mp4',
-            ptt: true
-          });
-        }
+        // 2. Alojar audio en CDN público de alta velocidad para otorgar tokens de red permanentes a WhatsApp (resuelve iPhone iOS)
+        const cdnUrl = await uploadToCdn(opusPath) || await uploadToCdn(result.filePath);
+        const audioSource = cdnUrl ? { url: cdnUrl } : await fs.readFile(opusPath);
+
+        // 3. Enviar la nota de voz PTT (ptt: true) con transmisión directa desde servidor CDN
+        await sock.sendMessage(jid, {
+          audio: audioSource,
+          mimetype: 'audio/mp4',
+          ptt: true
+        });
 
       } catch (err) {
         console.error('Error en #ytaudio:', err);
