@@ -439,7 +439,11 @@ async function handleMessage(sock, msg) {
                 buffer = Buffer.concat([buffer, chunk]);
               }
               if (buffer.length > 0) {
-                await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha, mentions: mentionsList });
+                try {
+                  await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha, mentions: mentionsList });
+                } catch (mErr) {
+                  await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha });
+                }
                 mediaSent = true;
               }
             } catch (mediaErr) {
@@ -453,7 +457,11 @@ async function handleMessage(sock, msg) {
                 buffer = Buffer.concat([buffer, chunk]);
               }
               if (buffer.length > 0) {
-                await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha, mentions: mentionsList });
+                try {
+                  await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha, mentions: mentionsList });
+                } catch (mErr) {
+                  await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha });
+                }
                 mediaSent = true;
               }
             } catch (mediaErr) {
@@ -462,15 +470,27 @@ async function handleMessage(sock, msg) {
           }
 
           if (!mediaSent) {
-            await sock.sendMessage(fichasGroupJid, { text: formattedFicha, mentions: mentionsList });
+            try {
+              await sock.sendMessage(fichasGroupJid, { text: formattedFicha, mentions: mentionsList });
+            } catch (mErr) {
+              await sock.sendMessage(fichasGroupJid, { text: formattedFicha });
+            }
           }
 
-          await sock.sendMessage(jid, { 
-            text: `✅ *¡REGISTRO ENVIADO Y APROBADO CON ÉXITO!*\n\n` +
-                  `👤 *Postulante:* @${applicantNum}\n` +
-                  `📦 Copiado y archivado en el canal de *FICHAS V7*.`,
-            mentions: [quotedUserJid].filter(Boolean)
-          });
+          try {
+            await sock.sendMessage(jid, { 
+              text: `✅ *¡REGISTRO ENVIADO Y APROBADO CON ÉXITO!*\n\n` +
+                    `👤 *Postulante:* @${applicantNum}\n` +
+                    `📦 Copiado y archivado en el canal de *FICHAS V7*.`,
+              mentions: [quotedUserJid].filter(Boolean)
+            });
+          } catch (mErr) {
+            await sock.sendMessage(jid, { 
+              text: `✅ *¡REGISTRO ENVIADO Y APROBADO CON ÉXITO!*\n\n` +
+                    `👤 *Postulante:* ${applicantNum}\n` +
+                    `📦 Copiado y archivado en el canal de *FICHAS V7*.`
+            });
+          }
         } catch (err) {
           console.error('Error enviando registro al canal de fichas:', err);
           await sock.sendMessage(jid, { text: `❌ Ocurrió un error al enviar al canal de Fichas: ${err.message}` });
