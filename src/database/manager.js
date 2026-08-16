@@ -155,6 +155,15 @@ class DatabaseManager {
     this.save();
   }
 
+  getFichasGroup() {
+    for (const groupId of Object.keys(this.data.groups)) {
+      if (this.data.groups[groupId].groupType === 'fichas') {
+        return groupId;
+      }
+    }
+    return null;
+  }
+
   createVS(groupId, opponent, datetime, slots = 4) {
     const group = this.getGroup(groupId);
     group.vs = {

@@ -117,16 +117,33 @@ async function handleMessage(sock, msg) {
       }
     }
 
-    // Extraer usuario mencionado si existe
+    // Extraer usuario mencionado o por respuesta a mensaje (reply)
     let targetUser = null;
-    const contextInfo = msg.message?.extendedTextMessage?.contextInfo;
+    const contextInfo = msg.message?.extendedTextMessage?.contextInfo || 
+                        msg.message?.imageMessage?.contextInfo || 
+                        msg.message?.videoMessage?.contextInfo || 
+                        msg.message?.stickerMessage?.contextInfo;
+
     const mentions = contextInfo?.mentionedJid || [];
+    const quotedParticipant = contextInfo?.participant;
 
     if (mentions.length > 0) {
       targetUser = mentions[0];
+    } else if (quotedParticipant) {
+      targetUser = quotedParticipant;
     } else if (args[0] && args[0].includes('@')) {
       const cleanNum = args[0].replace(/[^0-9]/g, '');
       if (cleanNum) targetUser = `${cleanNum}@s.whatsapp.net`;
+    }
+
+    // Extraer texto del mensaje respondido (reply) si existe
+    let quotedText = '';
+    const quotedMsg = contextInfo?.quotedMessage;
+    if (quotedMsg) {
+      quotedText = quotedMsg.conversation || 
+                   quotedMsg.extendedTextMessage?.text || 
+                   quotedMsg.imageMessage?.caption || 
+                   quotedMsg.videoMessage?.caption || '';
     }
 
     // Enrutamiento de Comandos
@@ -301,7 +318,7 @@ async function handleMessage(sock, msg) {
         await stickerCmd.handleSticker(sock, jid, msg);
         break;
 
-      // --- BIENVENIDAS Y LOBBY / GENERAL ---
+      // --- BIENVENIDAS Y LOBBY / GENERAL / FICHAS ---
       case 'setlobby':
         if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo se usa en grupos.' });
         if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden usar #setlobby.' });
@@ -314,6 +331,54 @@ async function handleMessage(sock, msg) {
         if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden usar #setgeneral.' });
         db.setGroupType(jid, 'general');
         await sock.sendMessage(jid, { text: '✅ *Grupo configurado como GENERAL V7.*\n\nCada miembro nuevo que ingrese recibirá el mensaje oficial de bienvenida al clan Dynasty V7.' });
+        break;
+
+      case 'setfichas':
+        if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo se usa en grupos.' });
+        if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden usar #setfichas.' });
+        db.setGroupType(jid, 'fichas');
+        await sock.sendMessage(jid, { text: '✅ *Grupo configurado como CANAL DE FICHAS V7.*\n\nAquí se enviarán automáticamente las fichas aprobadas con #aprobar o #aceptar.' });
+        break;
+
+      case 'aprobar':
+      case 'aceptar':
+      case 'ficha':
+      case 'moverficha':
+        if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo se usa en grupos.' });
+        if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden aprobar fichas.' });
+
+        if (!quotedText || !quotedParticipant) {
+          return sock.sendMessage(jid, { text: '⚠️ *Uso correcto:* Responde a la Ficha llenada por el postulante y escribe *#aprobar* (o *#aceptar*).' });
+        }
+
+        const fichasGroupJid = db.getFichasGroup();
+        if (!fichasGroupJid) {
+          return sock.sendMessage(jid, { text: '⚠️ Aún no se ha configurado el grupo de Fichas. Ve al canal de Fichas del clan y escribe *#setfichas*.' });
+        }
+
+        const applicantNum = quotedParticipant.split('@')[0];
+        const adminNum = senderNumber || 'Admin';
+        const dateStr = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+        const formattedFicha = `📋 *NUEVA FICHA ACEPTADA - DYNASTY V7* 📋\n\n` +
+          `👤 *Miembro Aceptado:* @${applicantNum}\n` +
+          `⭐ *Aprobado por Admin:* @${adminNum}\n` +
+          `📅 *Fecha:* ${dateStr}\n\n` +
+          `─────────── 📄 FICHA REGISTRADA ───────────\n\n` +
+          `${quotedText}`;
+
+        try {
+          await sock.sendMessage(fichasGroupJid, { text: formattedFicha, mentions: [quotedParticipant, sender] });
+          await sock.sendMessage(jid, { 
+            text: `✅ *¡FICHA APROBADA CON ÉXITO!*\n\n` +
+                  `👤 *Postulante:* @${applicantNum}\n` +
+                  `📦 La ficha ha sido copiada y archivada en el canal de *FICHAS V7*.`,
+            mentions: [quotedParticipant] 
+          });
+        } catch (err) {
+          console.error('Error enviando ficha al canal de fichas:', err);
+          await sock.sendMessage(jid, { text: '❌ Ocurrió un error al enviar la ficha al canal de Fichas. Verifica que el bot esté en el grupo de Fichas.' });
+        }
         break;
 
       case 'testlobby':

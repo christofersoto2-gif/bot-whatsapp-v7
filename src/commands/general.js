@@ -19,6 +19,8 @@ module.exports = {
       `▸ \`${config.prefix}setrules <texto>\` : Establecer reglas (Admin)\n` +
       `▸ \`${config.prefix}setlobby\` : Configurar grupo como Lobby de bienvenida (Admin)\n` +
       `▸ \`${config.prefix}setgeneral\` : Configurar grupo como General del clan (Admin)\n` +
+      `▸ \`${config.prefix}setfichas\` : Configurar grupo como Canal de Fichas (Admin)\n` +
+      `▸ \`${config.prefix}aprobar\` : Copiar y trasladar Ficha al canal de Fichas (Respondiendo al mensaje)\n` +
       `▸ \`${config.prefix}testlobby\` : Probar mensaje de Ficha de Lobby\n` +
       `▸ \`${config.prefix}testgeneral\` : Probar mensaje de Bienvenida General\n` +
       `▸ \`${config.prefix}perfil [@user]\` : Ver perfil de jugador\n\n` +
