@@ -115,6 +115,17 @@ async function startBot() {
       console.log(`🤖 Nombre: ${config.botName}`);
       console.log(`📌 Prefijo: ${config.prefix}`);
       console.log('💬 El bot está escuchando mensajes y listo para tus grupos de clan.');
+      
+      try {
+        const credsPath = path.join(AUTH_DIR, 'creds.json');
+        if (fs.existsSync(credsPath)) {
+          const credsContent = fs.readFileSync(credsPath, 'utf-8');
+          const base64Creds = Buffer.from(credsContent).toString('base64');
+          console.log('\n📌 COPIA ESTA CLAVE PERMANENTE PARA RENDER (SESSION_DATA):');
+          console.log(base64Creds);
+        }
+      } catch (e) {}
+
       console.log('====================================================\n');
     }
   });
