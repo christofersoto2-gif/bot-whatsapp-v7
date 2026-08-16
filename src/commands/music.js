@@ -53,15 +53,14 @@ module.exports = {
 
         await sock.sendMessage(jid, { text: infoText });
 
-        // Enviar archivo de audio 100% universal compatible con TODAS las marcas (Xiaomi, Motorola, Samsung, iPhone, Huawei, Web)
+        // Enviar archivo de audio como Documento MP3 Oficial (Formato 100% compatible con iPhone iOS, Android y WhatsApp Web)
         const audioBuffer = await fs.readFile(result.filePath);
         const cleanFileName = (result.title || 'cancion').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'cancion';
 
         await sock.sendMessage(jid, {
-          audio: audioBuffer,
+          document: audioBuffer,
           mimetype: 'audio/mpeg',
-          fileName: `${cleanFileName}.mp3`,
-          ptt: false
+          fileName: `${cleanFileName}.mp3`
         });
 
       } catch (err) {
