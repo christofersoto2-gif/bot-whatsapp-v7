@@ -1,5 +1,6 @@
 const fs = require('fs-extra');
 const path = require('path');
+const { BufferJSON } = require('@whiskeysockets/baileys');
 const config = require('../../config');
 
 const DB_PATH = path.join(__dirname, '../../database.json');
@@ -8,8 +9,8 @@ const activePollMessagesMap = new Map();
 
 function rehydrateBuffers(obj) {
   if (!obj || typeof obj !== 'object') return obj;
-  if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
-    return Buffer.from(obj.data);
+  if (obj.type === 'Buffer' && (Array.isArray(obj.data) || typeof obj.data === 'string')) {
+    return Buffer.from(obj.data, typeof obj.data === 'string' ? 'base64' : undefined);
   }
   for (const key of Object.keys(obj)) {
     obj[key] = rehydrateBuffers(obj[key]);
@@ -29,7 +30,9 @@ class DatabaseManager {
   init() {
     try {
       if (fs.existsSync(DB_PATH)) {
-        this.data = fs.readJsonSync(DB_PATH);
+        const raw = fs.readFileSync(DB_PATH, 'utf-8');
+        this.data = JSON.parse(raw, BufferJSON.reviver);
+        this.data = rehydrateBuffers(this.data);
       } else {
         this.save();
       }
@@ -41,7 +44,8 @@ class DatabaseManager {
 
   save() {
     try {
-      fs.writeJsonSync(DB_PATH, this.data, { spaces: 2 });
+      const jsonStr = JSON.stringify(this.data, BufferJSON.replacer, 2);
+      fs.writeFileSync(DB_PATH, jsonStr, 'utf-8');
     } catch (err) {
       console.error('Error guardando la base de datos:', err);
     }
