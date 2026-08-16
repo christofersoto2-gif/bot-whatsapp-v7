@@ -123,12 +123,12 @@ module.exports = {
     if (!isGroup) return sock.sendMessage(jid, { text: '❌ Comando solo para grupos.' });
 
     db.checkWeeklyReset(jid);
-    const startDateStr = db.getWeeklyResetDate(jid);
+    const rangeStr = db.getWeeklyResetDateRange(jid);
     const participants = groupMetadata.participants.map(p => p.id);
     const topActive = db.getTopActive(jid, participants, 10);
 
     let text = `🔥 *TOP 10 INTEGRANTES MÁS ACTIVOS DE LA SEMANA* 🔥\n` +
-      `📅 *Ciclo semanal iniciado el:* ${startDateStr}\n\n`;
+      `📅 *Semana:* ${rangeStr}\n\n`;
 
     topActive.forEach((u, idx) => {
       const number = u.id.split('@')[0];
@@ -137,7 +137,7 @@ module.exports = {
       text += `${prefix} @${number} - *${u.count} mensajes*\n`;
     });
 
-    text += `\n💡 _El conteo semanal se reinicia automáticamente cada 7 días o con #resetsemana._`;
+    text += `\n💡 _Se reinicia automáticamente todos los Domingos a medianoche (Lunes a Domingo)._`;
 
     await sock.sendMessage(jid, { text, mentions: topActive.map(u => u.id) });
   },
@@ -146,12 +146,12 @@ module.exports = {
     if (!isGroup) return sock.sendMessage(jid, { text: '❌ Comando solo para grupos.' });
 
     db.checkWeeklyReset(jid);
-    const startDateStr = db.getWeeklyResetDate(jid);
+    const rangeStr = db.getWeeklyResetDateRange(jid);
     const participants = groupMetadata.participants.map(p => p.id);
     const topInactive = db.getTopInactive(jid, participants, 10);
 
     let text = `💤 *TOP 10 INTEGRANTES MÁS INACTIVOS DE LA SEMANA* 💤\n` +
-      `📅 *Ciclo semanal iniciado el:* ${startDateStr}\n\n`;
+      `📅 *Semana:* ${rangeStr}\n\n`;
 
     topInactive.forEach((u, idx) => {
       const number = u.id.split('@')[0];
@@ -159,7 +159,7 @@ module.exports = {
       text += `${idx + 1}. @${number} - ${status}\n`;
     });
 
-    text += `\n💡 _El conteo semanal se reinicia automáticamente cada 7 días o con #resetsemana._`;
+    text += `\n💡 _Se reinicia automáticamente todos los Domingos a medianoche (Lunes a Domingo)._`;
 
     await sock.sendMessage(jid, { text, mentions: topInactive.map(u => u.id) });
   },
@@ -169,7 +169,7 @@ module.exports = {
     if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden ver la lista completa de inactivos.' });
 
     db.checkWeeklyReset(jid);
-    const startDateStr = db.getWeeklyResetDate(jid);
+    const rangeStr = db.getWeeklyResetDateRange(jid);
     const participants = groupMetadata.participants.map(p => p.id);
     const allActivity = db.getGroupActivity(jid, participants);
 
@@ -177,7 +177,7 @@ module.exports = {
     const ghostUsers = allActivity.filter(u => u.count <= 2);
 
     let text = `👻 *LISTA DE FANTASMAS / INACTIVOS DE LA SEMANA* 👻\n` +
-      `📅 *Ciclo semanal iniciado el:* ${startDateStr}\n\n` +
+      `📅 *Semana:* ${rangeStr}\n\n` +
       `Total de integrantes inactivos (<= 2 mensajes esta semana): *${ghostUsers.length}*\n\n`;
 
     if (ghostUsers.length === 0) {

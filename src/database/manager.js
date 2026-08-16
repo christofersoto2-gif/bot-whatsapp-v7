@@ -207,41 +207,48 @@ class DatabaseManager {
     return false;
   }
 
-  // --- ACTIVIDAD DE GRUPO Y CLAN (SEMANAL) ---
+  // --- ACTIVIDAD DE GRUPO Y CLAN (CALENDARIO SEMANAL: LUNES A DOMINGO) ---
+  getMondayTimestamp(d = new Date()) {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(date.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+    return monday.getTime();
+  }
+
   checkWeeklyReset(groupId) {
     const group = this.getGroup(groupId);
-    if (!group.lastWeeklyReset) group.lastWeeklyReset = Date.now();
+    const currentMondayMs = this.getMondayTimestamp();
 
-    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-    if (Date.now() - group.lastWeeklyReset >= ONE_WEEK_MS) {
-      console.log(`[Auto-Reset Semanal] Reiniciando conteo de actividad para el grupo: ${groupId}`);
+    if (!group.lastWeeklyReset || group.lastWeeklyReset < currentMondayMs) {
+      console.log(`[Auto-Reset Lunes-Domingo] Reiniciando semana de actividad para el grupo: ${groupId}`);
       group.activity = {};
-      group.lastWeeklyReset = Date.now();
+      group.lastWeeklyReset = currentMondayMs;
       this.save();
     }
   }
 
-  getWeeklyResetDate(groupId) {
+  getWeeklyResetDateRange(groupId) {
+    this.checkWeeklyReset(groupId);
     const group = this.getGroup(groupId);
-    if (!group.lastWeeklyReset) {
-      group.lastWeeklyReset = Date.now();
-      this.save();
-    }
-    return new Date(group.lastWeeklyReset).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const monday = new Date(group.lastWeeklyReset || this.getMondayTimestamp());
+    const sunday = new Date(monday);
+    sunday.setDate(sunday.getDate() + 6);
+
+    const formatOpts = { day: '2-digit', month: '2-digit' };
+    const mStr = monday.toLocaleDateString('es-CL', formatOpts);
+    const sStr = sunday.toLocaleDateString('es-CL', formatOpts);
+
+    return `Lunes ${mStr} al Domingo ${sStr}`;
   }
 
   trackActivity(groupId, userId) {
     const group = this.getGroup(groupId);
     if (!group.activity) group.activity = {};
-    if (!group.lastWeeklyReset) group.lastWeeklyReset = Date.now();
-
-    // Auto-reinicio semanal a los 7 días
-    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-    if (Date.now() - group.lastWeeklyReset >= ONE_WEEK_MS) {
-      console.log(`[Auto-Reset Semanal] Reiniciando conteo de actividad para el grupo: ${groupId}`);
-      group.activity = {};
-      group.lastWeeklyReset = Date.now();
-    }
+    
+    // Auto-reinicio si cambiamos de semana de calendario (Lunes 00:00)
+    this.checkWeeklyReset(groupId);
 
     if (!group.activity[userId]) {
       group.activity[userId] = { count: 0, lastSeen: 0 };
