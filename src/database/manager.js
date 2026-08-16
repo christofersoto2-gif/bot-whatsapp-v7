@@ -4,6 +4,19 @@ const config = require('../../config');
 
 const DB_PATH = path.join(__dirname, '../../database.json');
 
+const activePollMessagesMap = new Map();
+
+function rehydrateBuffers(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
+    return Buffer.from(obj.data);
+  }
+  for (const key of Object.keys(obj)) {
+    obj[key] = rehydrateBuffers(obj[key]);
+  }
+  return obj;
+}
+
 class DatabaseManager {
   constructor() {
     this.data = {
@@ -326,6 +339,9 @@ class DatabaseManager {
   // --- VOTACIONES & ENCUESTAS DE EVENTO ---
   createPoll(groupId, pollId, title, options, pollMessage = null) {
     const group = this.getGroup(groupId);
+    if (pollMessage) {
+      activePollMessagesMap.set(pollId, pollMessage);
+    }
     group.poll = {
       id: pollId,
       title,
@@ -365,16 +381,36 @@ class DatabaseManager {
   }
 
   getActivePoll(groupId = null) {
+    let poll = null;
+    let sourceGroupId = null;
+
     if (groupId && this.data.groups[groupId] && this.data.groups[groupId].poll) {
-      return { ...this.data.groups[groupId].poll, sourceGroupId: groupId };
-    }
-    // Si no hay votación activa en este grupo específico, buscar si hay una votación activa en cualquier otro grupo del clan
-    for (const gId of Object.keys(this.data.groups)) {
-      if (this.data.groups[gId].poll) {
-        return { ...this.data.groups[gId].poll, sourceGroupId: gId };
+      poll = this.data.groups[groupId].poll;
+      sourceGroupId = groupId;
+    } else {
+      for (const gId of Object.keys(this.data.groups)) {
+        if (this.data.groups[gId].poll) {
+          poll = this.data.groups[gId].poll;
+          sourceGroupId = gId;
+          break;
+        }
       }
     }
-    return null;
+
+    if (!poll) return null;
+
+    // Recuperar pollMessage original de la memoria RAM o rehidratar de la base de datos
+    let liveMessage = activePollMessagesMap.get(poll.id);
+    if (!liveMessage && poll.pollMessage) {
+      liveMessage = rehydrateBuffers(JSON.parse(JSON.stringify(poll.pollMessage)));
+      activePollMessagesMap.set(poll.id, liveMessage);
+    }
+
+    return {
+      ...poll,
+      sourceGroupId,
+      pollMessage: liveMessage || poll.pollMessage
+    };
   }
 
   closePoll(groupId) {
