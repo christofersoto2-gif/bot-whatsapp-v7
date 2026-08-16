@@ -21,7 +21,7 @@ function getCleanNumber(jidOrId) {
 }
 
 /**
- * Normaliza textos convirtiendo estilos tipográficos especiales (negritas Unicode 𝗙𝗜𝗖𝗛𝗔𝗦, cursivas 𝐹𝐼𝐶𝐻𝐴𝑆, acentos) a letras normales
+ * Normaliza textos convirtiendo estilos tipográficos especiales (negritas Unicode 𝗙𝗜𝗖𝗛𝗔𝗦, cursivas 𝑭𝒊𝒄𝒉𝒂𝒔, acentos) a letras normales
  */
 function normalizeText(str) {
   if (!str) return '';
@@ -29,12 +29,20 @@ function normalizeText(str) {
     .normalize('NFKD')
     .replace(/[\u1D400-\u1D7FF]/g, (char) => {
       const code = char.codePointAt(0);
-      if (code >= 0x1D400 && code <= 0x1D419) return String.fromCharCode(code - 0x1D400 + 65);
-      if (code >= 0x1D41A && code <= 0x1D433) return String.fromCharCode(code - 0x1D41A + 97);
-      if (code >= 0x1D434 && code <= 0x1D44D) return String.fromCharCode(code - 0x1D434 + 65);
-      if (code >= 0x1D44E && code <= 0x1D467) return String.fromCharCode(code - 0x1D44E + 97);
-      if (code >= 0x1D5D4 && code <= 0x1D5ED) return String.fromCharCode(code - 0x1D5D4 + 65);
-      if (code >= 0x1D5EE && code <= 0x1D607) return String.fromCharCode(code - 0x1D5EE + 97);
+      if (code >= 0x1D400 && code <= 0x1D419) return String.fromCharCode(code - 0x1D400 + 65); // Bold A-Z
+      if (code >= 0x1D41A && code <= 0x1D433) return String.fromCharCode(code - 0x1D41A + 97); // Bold a-z
+      if (code >= 0x1D434 && code <= 0x1D44D) return String.fromCharCode(code - 0x1D434 + 65); // Italic A-Z
+      if (code >= 0x1D44E && code <= 0x1D467) return String.fromCharCode(code - 0x1D44E + 97); // Italic a-z
+      if (code >= 0x1D468 && code <= 0x1D481) return String.fromCharCode(code - 0x1D468 + 65); // Bold Italic A-Z (ej: 𝑭)
+      if (code >= 0x1D482 && code <= 0x1D49B) return String.fromCharCode(code - 0x1D482 + 97); // Bold Italic a-z (ej: 𝒊𝒄𝒉𝒂𝒔)
+      if (code >= 0x1D49C && code <= 0x1D4B5) return String.fromCharCode(code - 0x1D49C + 65); // Script A-Z
+      if (code >= 0x1D4B6 && code <= 0x1D4CF) return String.fromCharCode(code - 0x1D4B6 + 97); // Script a-z
+      if (code >= 0x1D4D0 && code <= 0x1D4E9) return String.fromCharCode(code - 0x1D4D0 + 65); // Bold Script A-Z
+      if (code >= 0x1D4EA && code <= 0x1D503) return String.fromCharCode(code - 0x1D4EA + 97); // Bold Script a-z
+      if (code >= 0x1D5D4 && code <= 0x1D5ED) return String.fromCharCode(code - 0x1D5D4 + 65); // Sans-Serif Bold A-Z (ej: 𝗙)
+      if (code >= 0x1D5EE && code <= 0x1D607) return String.fromCharCode(code - 0x1D5EE + 97); // Sans-Serif Bold a-z (ej: 𝗜𝗖𝗛𝗔𝗦)
+      if (code >= 0x1D608 && code <= 0x1D621) return String.fromCharCode(code - 0x1D608 + 65); // Sans-Serif Italic A-Z
+      if (code >= 0x1D622 && code <= 0x1D63B) return String.fromCharCode(code - 0x1D622 + 97); // Sans-Serif Italic a-z
       return char;
     })
     .replace(/[\u0300-\u036f]/g, '')
