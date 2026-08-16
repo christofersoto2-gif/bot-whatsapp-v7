@@ -142,8 +142,8 @@ async function handleMessage(sock, msg) {
     }
 
     // Registrar actividad en la base de datos para seguimiento de inactivos
-    if (isGroup && sender) {
-      db.trackActivity(jid, sender);
+    if (isGroup && (sender || senderRaw)) {
+      db.trackActivity(jid, sender, senderRaw);
     }
 
     if (!body || !body.startsWith(config.prefix)) return;

@@ -243,18 +243,21 @@ class DatabaseManager {
     return `Lunes ${mStr} al Domingo ${sStr}`;
   }
 
-  trackActivity(groupId, userId) {
+  trackActivity(groupId, userId, rawSender = null) {
     const group = this.getGroup(groupId);
     if (!group.activity) group.activity = {};
     
     // Auto-reinicio si cambiamos de semana de calendario (Lunes 00:00)
     this.checkWeeklyReset(groupId);
 
-    if (!group.activity[userId]) {
-      group.activity[userId] = { count: 0, lastSeen: 0 };
+    const keysToUpdate = [userId, rawSender].filter(Boolean);
+    for (const key of keysToUpdate) {
+      if (!group.activity[key]) {
+        group.activity[key] = { count: 0, lastSeen: 0 };
+      }
+      group.activity[key].count += 1;
+      group.activity[key].lastSeen = Date.now();
     }
-    group.activity[userId].count += 1;
-    group.activity[userId].lastSeen = Date.now();
     this.save();
   }
 
@@ -263,13 +266,31 @@ class DatabaseManager {
     const group = this.getGroup(groupId);
     const activityMap = group.activity || {};
 
-    // Asegurar que todos los participantes del grupo estén mapeados
+    const cleanNum = (id) => {
+      if (!id) return '';
+      return id.split(':')[0].split('@')[0].replace(/[^0-9]/g, '');
+    };
+
+    // Mapear participantes agrupando por numero limpio, LID y JID
     const list = participantsJids.map(jid => {
-      const act = activityMap[jid] || { count: 0, lastSeen: 0 };
+      let count = 0;
+      let lastSeen = 0;
+      const pNum = cleanNum(jid);
+
+      for (const key of Object.keys(activityMap)) {
+        const keyNum = cleanNum(key);
+        if (key === jid || (pNum && keyNum && (pNum === keyNum || pNum.endsWith(keyNum) || keyNum.endsWith(pNum)))) {
+          count += (activityMap[key].count || 0);
+          if ((activityMap[key].lastSeen || 0) > lastSeen) {
+            lastSeen = activityMap[key].lastSeen;
+          }
+        }
+      }
+
       return {
         id: jid,
-        count: act.count,
-        lastSeen: act.lastSeen
+        count,
+        lastSeen
       };
     });
 
