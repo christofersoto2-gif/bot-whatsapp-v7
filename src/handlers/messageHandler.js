@@ -21,10 +21,17 @@ function getCleanNumber(jidOrId) {
 }
 
 /**
- * Descarga contenido multimedia de Baileys de forma ultra-segura con listener de error y timeout (evita caídas OOM en Render)
+ * Descarga contenido multimedia de Baileys de forma ultra-segura evitando fallos C++ (Status 139 / Segfault)
  */
 async function safeDownloadMedia(mediaMsg, mediaType) {
   if (!mediaMsg) return null;
+
+  // IMPORTANTE: Prevenir fallo C++ Segfault (Status 139) si el mensaje citado es un stub de WhatsApp sin llaves de cifrado
+  if (!mediaMsg.mediaKey || (!mediaMsg.url && !mediaMsg.directPath)) {
+    console.log('El mensaje multimedia citado es un stub sin llaves directas, omitiendo descarga...');
+    return null;
+  }
+
   try {
     const stream = await downloadContentFromMessage(mediaMsg, mediaType);
     let buffer = Buffer.from([]);
