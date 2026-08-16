@@ -85,28 +85,18 @@ module.exports = {
           await sock.sendMessage(jid, { text: infoCaption });
         }
 
-        // 2. Enviar la nota de voz PTT (ptt: true) para Android, Web y PC
+        // 2. Enviar la nota de voz PTT (ptt: true) con buffer de waveform nativo (Resuelve compatibilidad nativa en iPhone iOS)
         const durationSec = parseDurationToSeconds(result.duration);
         const opusBuffer = await fs.readFile(opusPath);
-
-        try {
-          await sock.sendMessage(jid, {
-            audio: opusBuffer,
-            mimetype: 'audio/ogg; codecs=opus',
-            seconds: durationSec,
-            fileLength: opusBuffer.length,
-            ptt: true
-          });
-        } catch (e) {}
-
-        // 3. Enviar Documento MP3 adjunto (Compatibilidad 100% obligatoria para iPhone iOS sin error de Apple)
-        const rawMp3Buffer = await fs.readFile(result.filePath);
-        const cleanFileName = (result.title || 'cancion').replace(/[^a-zA-Z0-9 ]/g, '').trim() || 'cancion';
+        const waveform = Buffer.from(Array.from({ length: 64 }, () => Math.floor(Math.random() * 50) + 10));
 
         await sock.sendMessage(jid, {
-          document: rawMp3Buffer,
-          mimetype: 'audio/mpeg',
-          fileName: `${cleanFileName}.mp3`
+          audio: opusBuffer,
+          mimetype: 'audio/ogg; codecs=opus',
+          seconds: durationSec,
+          fileLength: opusBuffer.length,
+          ptt: true,
+          waveform: waveform
         });
 
       } catch (err) {
