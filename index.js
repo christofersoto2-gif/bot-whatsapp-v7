@@ -3,13 +3,15 @@ const {
   useMultiFileAuthState, 
   DisconnectReason, 
   fetchLatestBaileysVersion, 
-  makeCacheableSignalKeyStore 
+  makeCacheableSignalKeyStore,
+  getAggregateVotesInPollMessage
 } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
 const pino = require('pino');
 const path = require('path');
 const fs = require('fs-extra');
 const config = require('./config');
+const db = require('./src/database/manager');
 const { handleMessage } = require('./src/handlers/messageHandler');
 const { handleParticipantUpdate } = require('./src/handlers/welcomeHandler');
 
@@ -142,18 +144,31 @@ async function startBot() {
 
   sock.ev.on('messages.update', async (updates) => {
     for (const update of updates) {
-      if (update.pollUpdates || update.update?.message?.pollUpdateMessage) {
-        const pollUpd = update.pollUpdates?.[0] || update.update?.message?.pollUpdateMessage;
-        const msg = {
-          key: update.key || update.update?.key || pollUpd?.pollUpdateMessageKey,
-          message: {
-            pollUpdateMessage: pollUpd?.pollUpdateMessage || pollUpd
+      const pollUpdates = update.pollUpdates || update.update?.pollUpdates || update.update?.message?.pollUpdateMessage;
+      
+      if (pollUpdates) {
+        const jid = update.key?.remoteJid || update.update?.key?.remoteJid;
+        const activePoll = db.getActivePoll(jid);
+        
+        if (activePoll && activePoll.pollMessage) {
+          const updatesList = Array.isArray(pollUpdates) ? pollUpdates : [pollUpdates];
+          
+          for (const pUpd of updatesList) {
+            db.addPollUpdate(activePoll.sourceGroupId || jid, pUpd);
           }
-        };
-        if (msg.key && msg.message) {
-          setImmediate(() => {
-            handleMessage(sock, msg).catch(err => console.error('Error procesando actualización de encuesta:', err));
-          });
+
+          try {
+            const freshPoll = db.getActivePoll(jid);
+            const votesSummary = getAggregateVotesInPollMessage({
+              message: freshPoll.pollMessage,
+              pollUpdates: freshPoll.pollUpdates
+            }, sock.user?.id || '');
+
+            db.updatePollVotesSummary(activePoll.sourceGroupId || jid, votesSummary);
+            console.log(`[Baileys Poll Aggregate ÉXITO] ¡Voto registrado y procesado para la encuesta: ${freshPoll.title}!`);
+          } catch (err) {
+            console.error('Error calculando votos con getAggregateVotesInPollMessage:', err);
+          }
         }
       }
     }
