@@ -323,10 +323,45 @@ class DatabaseManager {
     this.save();
   }
 
-  resetVS(groupId) {
+  // --- VOTACIONES & ENCUESTAS DE EVENTO ---
+  createPoll(groupId, pollId, title, options) {
     const group = this.getGroup(groupId);
-    group.vs = null;
+    group.poll = {
+      id: pollId,
+      title,
+      options,
+      votes: {},
+      createdAt: Date.now()
+    };
     this.save();
+    return group.poll;
+  }
+
+  recordPollVote(groupId, userId, optionIndex) {
+    const group = this.getGroup(groupId);
+    if (!group.poll) return false;
+    
+    // Si optionIndex es null o -1, elimina el voto (deselección)
+    if (optionIndex === null || optionIndex < 0) {
+      delete group.poll.votes[userId];
+    } else {
+      group.poll.votes[userId] = optionIndex;
+    }
+    this.save();
+    return true;
+  }
+
+  getActivePoll(groupId) {
+    const group = this.getGroup(groupId);
+    return group.poll || null;
+  }
+
+  closePoll(groupId) {
+    const group = this.getGroup(groupId);
+    const lastPoll = group.poll;
+    group.poll = null;
+    this.save();
+    return lastPoll;
   }
 }
 

@@ -16,6 +16,9 @@ module.exports = {
       `▸ \`${config.prefix}topinactivos\` : Ver los 10 miembros menos activos de la semana\n` +
       `▸ \`${config.prefix}fantasmas\` : Lista completa de inactivos semanales (Admin)\n` +
       `▸ \`${config.prefix}resetsemana\` : Reiniciar conteo semanal de mensajes (Admin)\n` +
+      `▸ \`${config.prefix}votacion <Título> | <Op1> | <Op2>\` : Crear encuestas nativas de evento (Admin)\n` +
+      `▸ \`${config.prefix}resultados\` : Ver votos por opción e integrantes pendientes por votar\n` +
+      `▸ \`${config.prefix}cerrarvotacion\` : Finalizar la votación activa (Admin)\n` +
       `▸ \`${config.prefix}reglas\` : Ver el reglamento del clan\n` +
       `▸ \`${config.prefix}setrules <texto>\` : Establecer reglas (Admin)\n` +
       `▸ \`${config.prefix}setlobby\` : Configurar grupo como Lobby de bienvenida (Admin)\n` +

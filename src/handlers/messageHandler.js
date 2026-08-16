@@ -8,6 +8,7 @@ const casinoCmd = require('../commands/casino');
 const musicCmd = require('../commands/music');
 const stickerCmd = require('../commands/sticker');
 const generalCmd = require('../commands/general');
+const pollCmd = require('../commands/poll');
 const welcomeHandler = require('./welcomeHandler');
 
 /**
@@ -299,6 +300,28 @@ async function handleMessage(sock, msg) {
       case 'resetactividad':
       case 'resetactivos':
         await clanCmd.handleResetActivity(sock, jid, isGroup, isAdmin);
+        break;
+
+      // --- VOTACIONES Y EVENTOS DE CLAN ---
+      case 'votacion':
+      case 'poll':
+      case 'encuesta':
+        await pollCmd.handleCreatePoll(sock, jid, body, isGroup, isAdmin);
+        break;
+
+      case 'resultados':
+      case 'vervotacion':
+      case 'vervotos':
+        await pollCmd.handlePollResults(sock, jid, isGroup, groupMetadata);
+        break;
+
+      case 'cerrarvotacion':
+      case 'cerrarpoll':
+        await pollCmd.handleClosePoll(sock, jid, isGroup, isAdmin);
+        break;
+
+      case 'votar':
+        await pollCmd.handleVotarText(sock, jid, args, sender, isGroup);
         break;
 
       // --- MODERACIÓN DISCORD ---
