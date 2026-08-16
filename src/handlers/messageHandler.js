@@ -21,6 +21,42 @@ function getCleanNumber(jidOrId) {
 }
 
 /**
+ * Descarga contenido multimedia de Baileys de forma ultra-segura con listener de error y timeout (evita caídas OOM en Render)
+ */
+async function safeDownloadMedia(mediaMsg, mediaType) {
+  if (!mediaMsg) return null;
+  try {
+    const stream = await downloadContentFromMessage(mediaMsg, mediaType);
+    let buffer = Buffer.from([]);
+
+    return await new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        console.log('Timeout de 4s alcanzado en descarga de media.');
+        resolve(null);
+      }, 4000);
+
+      stream.on('data', (chunk) => {
+        buffer = Buffer.concat([buffer, chunk]);
+      });
+
+      stream.on('end', () => {
+        clearTimeout(timeout);
+        resolve(buffer.length > 0 ? buffer : null);
+      });
+
+      stream.on('error', (err) => {
+        clearTimeout(timeout);
+        console.log('Error en stream de media:', err.message);
+        resolve(null);
+      });
+    });
+  } catch (err) {
+    console.log('Error en safeDownloadMedia:', err.message);
+    return null;
+  }
+}
+
+/**
  * Normaliza textos convirtiendo estilos tipográficos especiales (negritas Unicode 𝗙𝗜𝗖𝗛𝗔𝗦, cursivas 𝑭𝒊𝒄𝒉𝒂𝒔, acentos) a letras normales
  */
 function normalizeText(str) {
@@ -432,40 +468,24 @@ async function handleMessage(sock, msg) {
           const mentionsList = [quotedUserJid, sender].filter(Boolean);
 
           if (quotedMsg?.imageMessage) {
-            try {
-              const stream = await downloadContentFromMessage(quotedMsg.imageMessage, 'image');
-              let buffer = Buffer.from([]);
-              for await (const chunk of stream) {
-                buffer = Buffer.concat([buffer, chunk]);
+            const buffer = await safeDownloadMedia(quotedMsg.imageMessage, 'image');
+            if (buffer) {
+              try {
+                await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha, mentions: mentionsList });
+              } catch (mErr) {
+                await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha });
               }
-              if (buffer.length > 0) {
-                try {
-                  await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha, mentions: mentionsList });
-                } catch (mErr) {
-                  await sock.sendMessage(fichasGroupJid, { image: buffer, caption: formattedFicha });
-                }
-                mediaSent = true;
-              }
-            } catch (mediaErr) {
-              console.log('No se pudo descargar la imagen citada:', mediaErr);
+              mediaSent = true;
             }
           } else if (quotedMsg?.videoMessage) {
-            try {
-              const stream = await downloadContentFromMessage(quotedMsg.videoMessage, 'video');
-              let buffer = Buffer.from([]);
-              for await (const chunk of stream) {
-                buffer = Buffer.concat([buffer, chunk]);
+            const buffer = await safeDownloadMedia(quotedMsg.videoMessage, 'video');
+            if (buffer) {
+              try {
+                await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha, mentions: mentionsList });
+              } catch (mErr) {
+                await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha });
               }
-              if (buffer.length > 0) {
-                try {
-                  await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha, mentions: mentionsList });
-                } catch (mErr) {
-                  await sock.sendMessage(fichasGroupJid, { video: buffer, caption: formattedFicha });
-                }
-                mediaSent = true;
-              }
-            } catch (mediaErr) {
-              console.log('No se pudo descargar el video citado:', mediaErr);
+              mediaSent = true;
             }
           }
 
