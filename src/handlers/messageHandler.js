@@ -92,6 +92,19 @@ function normalizeText(str) {
     .toLowerCase();
 }
 
+const groupMetadataCache = new Map();
+
+async function getCachedGroupMetadata(sock, jid) {
+  const now = Date.now();
+  const cached = groupMetadataCache.get(jid);
+  if (cached && (now - cached.timestamp < 5 * 60 * 1000)) {
+    return cached.data;
+  }
+  const fresh = await sock.groupMetadata(jid);
+  groupMetadataCache.set(jid, { data: fresh, timestamp: now });
+  return fresh;
+}
+
 /**
  * Procesa todos los mensajes entrantes de WhatsApp
  */
@@ -140,14 +153,14 @@ async function handleMessage(sock, msg) {
     const command = args.shift().toLowerCase();
     const startTime = Date.now();
 
-    // Obtener información del grupo y permisos si aplica
+    // Obtener información del grupo y permisos usando caché ultrarrápida de 5 min (Evita lag de red)
     let groupMetadata = null;
     let isAdmin = false;
     let isBotAdmin = false;
 
     if (isGroup) {
       try {
-        groupMetadata = await sock.groupMetadata(jid);
+        groupMetadata = await getCachedGroupMetadata(sock, jid);
         const participants = groupMetadata.participants || [];
 
         const senderParticipant = participants.find(p => {
