@@ -48,6 +48,11 @@ async function startBot() {
   console.log(`🚀 Iniciando ${config.botName}...`);
   console.log('----------------------------------------------------');
 
+  // Inicializar la conexión a MongoDB (Persistencia en la nube)
+  if (process.env.MONGODB_URI) {
+    await db.connectDB(process.env.MONGODB_URI);
+  }
+
   const logger = pino({ level: 'silent' });
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version, isLatest } = await fetchLatestBaileysVersion();

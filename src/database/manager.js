@@ -2,6 +2,13 @@ const fs = require('fs-extra');
 const path = require('path');
 const { BufferJSON } = require('@whiskeysockets/baileys');
 const config = require('../../config');
+const mongoose = require('mongoose');
+
+const dbSchema = new mongoose.Schema({
+  data: { type: mongoose.Schema.Types.Mixed, default: { users: {}, groups: {} } }
+}, { strict: false });
+const DbModel = mongoose.models.Database || mongoose.model('Database', dbSchema);
+
 
 const DB_PATH = path.join(__dirname, '../../database.json');
 
@@ -30,7 +37,30 @@ class DatabaseManager {
       users: {},
       groups: {}
     };
+    this.mongoConnected = false;
     this.init();
+  }
+
+  async connectDB(uri) {
+    if (!uri) return;
+    try {
+      console.log('🔄 Conectando a MongoDB Atlas...');
+      await mongoose.connect(uri);
+      this.mongoConnected = true;
+      console.log('✅ ¡Conectado a MongoDB Atlas de forma exitosa!');
+
+      // Descargar datos si existen
+      let doc = await DbModel.findOne({});
+      if (doc && doc.data) {
+        console.log('📦 Cargando base de datos persistente desde MongoDB...');
+        this.data = rehydrateBuffers(doc.data);
+      } else {
+        console.log('🆕 No se encontraron datos en MongoDB. Se creará un nuevo documento al guardar.');
+      }
+    } catch (err) {
+      console.error('❌ Error crítico al conectar con MongoDB:', err.message);
+      this.mongoConnected = false;
+    }
   }
 
   init() {
@@ -56,6 +86,14 @@ class DatabaseManager {
     try {
       const jsonStr = JSON.stringify(this.data, BufferJSON.replacer, 2);
       fs.writeFileSync(DB_PATH, jsonStr, 'utf-8');
+
+      // Sincronización en segundo plano con MongoDB
+      if (this.mongoConnected) {
+        // Ejecutamos la actualización sin usar await para no bloquear los procesos sincrónicos
+        DbModel.updateOne({}, { data: this.data }, { upsert: true }).catch(err => {
+          console.error('⚠️ Error sincronizando con MongoDB en segundo plano:', err.message);
+        });
+      }
     } catch (err) {
       console.error('Error guardando la base de datos:', err);
     }
