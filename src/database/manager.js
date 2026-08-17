@@ -271,21 +271,23 @@ class DatabaseManager {
     return `Lunes ${mStr} al Domingo ${sStr}`;
   }
 
-  trackActivity(groupId, userId, rawSender = null) {
+  trackActivity(groupId, userId) {
+    this.checkWeeklyReset(groupId);
     const group = this.getGroup(groupId);
     if (!group.activity) group.activity = {};
-    
-    // Auto-reinicio si cambiamos de semana de calendario (Lunes 00:00)
-    this.checkWeeklyReset(groupId);
 
-    const keysToUpdate = [userId, rawSender].filter(Boolean);
-    for (const key of keysToUpdate) {
-      if (!group.activity[key]) {
-        group.activity[key] = { count: 0, lastSeen: 0 };
-      }
-      group.activity[key].count += 1;
-      group.activity[key].lastSeen = Date.now();
+    // por sufijos de dispositivo (:0, :1, etc.) que causarían doble conteo
+    const cleanNum = (id) => (id || '').split(':')[0].split('@')[0].replace(/[^0-9]/g, '');
+    const num = cleanNum(userId);
+    const normalizedKey = num ? `${num}@s.whatsapp.net` : userId;
+
+    if (!normalizedKey) return;
+
+    if (!group.activity[normalizedKey]) {
+      group.activity[normalizedKey] = { count: 0, lastSeen: 0 };
     }
+    group.activity[normalizedKey].count += 1;
+    group.activity[normalizedKey].lastSeen = Date.now();
     this.save();
   }
 
