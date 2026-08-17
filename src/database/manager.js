@@ -35,7 +35,11 @@ class DatabaseManager {
 
   init() {
     try {
-      if (fs.existsSync(DB_PATH)) {
+      if (process.env.DATABASE_DATA) {
+        console.log('📦 Cargando base de datos persistente desde variable DATABASE_DATA...');
+        this.data = JSON.parse(process.env.DATABASE_DATA, BufferJSON.reviver);
+        this.data = rehydrateBuffers(this.data);
+      } else if (fs.existsSync(DB_PATH)) {
         const raw = fs.readFileSync(DB_PATH, 'utf-8');
         this.data = JSON.parse(raw, BufferJSON.reviver);
         this.data = rehydrateBuffers(this.data);

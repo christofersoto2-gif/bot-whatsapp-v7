@@ -4,3 +4,5 @@ node_modules/
 test.mp3
 test_audio.mp4
 test_lowest.mp4
+database.json
+database.json.bak
