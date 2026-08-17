@@ -179,34 +179,73 @@ async function handleMessage(sock, msg) {
         console.log('[Poll] ID no coincide. activo:', activePoll.id, ' voto:', pollCreationMsgId); return;
       }
 
-      // Obtener la clave de encriptación del poll (desde pollCreationMessage o messageContextInfo)
+      // Obtener la clave de encriptación — manejar múltiples formatos de deserialización
       const rawKey = activePoll.pollMessage?.pollCreationMessage?.encKey
         || activePoll.pollMessage?.messageContextInfo?.messageSecret;
 
       if (!rawKey) {
-        console.log('[Poll] No se encontró encKey en pollMessage guardado.');
+        console.log('[Poll] No se encontró encKey. Claves de pollMessage:', Object.keys(activePoll.pollMessage || {}));
+        console.log('[Poll] pollCreationMessage keys:', Object.keys(activePoll.pollMessage?.pollCreationMessage || {}));
         return;
       }
-      const pollEncKey = Buffer.isBuffer(rawKey) ? rawKey : Buffer.from(Object.values(rawKey));
 
-      const pollCreatorJid = normalizeJid(sock.user?.id || '');
+      // Convertir a Buffer robustamente sin importar cómo fue deserializado
+      let pollEncKey;
+      if (Buffer.isBuffer(rawKey)) {
+        pollEncKey = rawKey;
+      } else if (rawKey?.type === 'Buffer' && Array.isArray(rawKey?.data)) {
+        pollEncKey = Buffer.from(rawKey.data);  // formato {type:"Buffer",data:[...]}
+      } else if (rawKey instanceof Uint8Array) {
+        pollEncKey = Buffer.from(rawKey);
+      } else if (Array.isArray(rawKey)) {
+        pollEncKey = Buffer.from(rawKey);
+      } else {
+        pollEncKey = Buffer.from(Object.values(rawKey));
+      }
+
+      console.log('[Poll] encKey hex (primeros 8 bytes):', pollEncKey.slice(0, 8).toString('hex'), '| length:', pollEncKey.length);
+      console.log('[Poll] pollCreationMessageKey del voto:', JSON.stringify(pollUpdateMsg.pollCreationMessageKey));
+
+      // Intentar múltiples combinaciones de JIDs para encontrar la correcta
       const pollMsgId = activePoll.id;
+      const creatorNorm = normalizeJid(sock.user?.id || '');
+      const creatorRaw  = sock.user?.id || '';
+      const creatorFromVote = pollUpdateMsg.pollCreationMessageKey?.participant || creatorNorm;
 
-      console.log('[Poll] pollEncKey length:', pollEncKey.length, '| pollCreatorJid:', pollCreatorJid);
+      const voterNorm = normalizeJid(voterJidRaw);
+      const voterRaw  = voterJidRaw;
 
-      let decryptedVote;
-      try {
-        decryptedVote = decryptPollVote(pollUpdateMsg.vote, {
-          pollCreatorJid,
-          pollMsgId,
-          pollEncKey,
-          voterJid
-        });
-        console.log('[Poll] Voto desencriptado OK — selectedOptions count:', decryptedVote?.selectedOptions?.length);
-      } catch (err) {
-        console.error('[Poll] Error en decryptPollVote:', err.message);
+      const combos = [
+        { pollCreatorJid: creatorNorm,      voterJid: voterNorm,  label: 'creatorNorm+voterNorm' },
+        { pollCreatorJid: creatorNorm,      voterJid: voterRaw,   label: 'creatorNorm+voterRaw' },
+        { pollCreatorJid: creatorRaw,       voterJid: voterNorm,  label: 'creatorRaw+voterNorm' },
+        { pollCreatorJid: creatorRaw,       voterJid: voterRaw,   label: 'creatorRaw+voterRaw' },
+        { pollCreatorJid: creatorFromVote,  voterJid: voterNorm,  label: 'creatorFromVote+voterNorm' },
+      ];
+
+      let decryptedVote = null;
+      let winnerLabel = '';
+      for (const combo of combos) {
+        try {
+          decryptedVote = decryptPollVote(pollUpdateMsg.vote, {
+            pollCreatorJid: combo.pollCreatorJid,
+            pollMsgId,
+            pollEncKey,
+            voterJid: combo.voterJid
+          });
+          winnerLabel = combo.label;
+          console.log(`[Poll] ✅ decryptPollVote exitoso con combo: ${combo.label}`);
+          break;
+        } catch (e) {
+          console.log(`[Poll] ❌ combo ${combo.label} falló: ${e.message}`);
+        }
+      }
+
+      if (!decryptedVote) {
+        console.error('[Poll] Todos los combos fallaron. Verifica que el encKey sea correcto.');
         return;
       }
+      console.log('[Poll] selectedOptions count:', decryptedVote?.selectedOptions?.length, '| combo:', winnerLabel);
 
       // Guardar el pollUpdate con los selectedOptions YA desencriptados
       const pollUpdate = {
