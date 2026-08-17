@@ -153,8 +153,51 @@ async function handleMessage(sock, msg) {
     const sender = senderNumber ? `${senderNumber}@s.whatsapp.net` : '';
 
 
+    // Votos de encuestas nativas: llegan como messages.upsert con tipo pollUpdateMessage
+    if (messageType === 'pollUpdateMessage') {
+      console.log('[Poll] Voto recibido via upsert (pollUpdateMessage)');
+      const pollUpdateMsg = msg.message.pollUpdateMessage;
+      const pollCreationMsgId = pollUpdateMsg?.pollCreationMessageKey?.id;
+      const voterJid = msg.key?.participant || senderRaw;
 
-    // Obtener texto del mensaje
+      console.log('[Poll] pollCreationMsgId:', pollCreationMsgId, '| voterJid:', voterJid);
+
+      const activePoll = db.getActivePoll(jid);
+      if (!activePoll) {
+        console.log('[Poll] No hay encuesta activa para jid:', jid);
+        return;
+      }
+      if (activePoll.id !== pollCreationMsgId) {
+        console.log('[Poll] IDs no coinciden. activePoll.id:', activePoll.id, '!== pollCreationMsgId:', pollCreationMsgId);
+        return;
+      }
+
+      // Construir el objeto pollUpdate que espera getAggregateVotesInPollMessage
+      const pollUpdate = {
+        pollUpdateMessageKey: msg.key,        // contiene participant, remoteJid, fromMe, id
+        vote: pollUpdateMsg.vote,             // voto encriptado original
+        senderTimestampMs: pollUpdateMsg.senderTimestampMs
+      };
+
+      console.log('[Poll] Guardando pollUpdate para votante:', voterJid);
+      db.addPollUpdate(activePoll.sourceGroupId || jid, pollUpdate);
+
+      try {
+        const freshPoll = db.getActivePoll(jid);
+        const { getAggregateVotesInPollMessage } = require('@whiskeysockets/baileys');
+        const votesSummary = getAggregateVotesInPollMessage({
+          message: freshPoll.pollMessage,
+          pollUpdates: freshPoll.pollUpdates
+        }, sock.user?.id || '');
+
+        console.log('[Poll] votesSummary:', JSON.stringify(votesSummary));
+        db.updatePollVotesSummary(activePoll.sourceGroupId || jid, votesSummary);
+      } catch (err) {
+        console.error('[Poll] Error en getAggregateVotesInPollMessage:', err.message);
+      }
+      return;
+    }
+
     let body = '';
     if (messageType === 'conversation') {
       body = msg.message.conversation;
