@@ -235,8 +235,9 @@ class DatabaseManager {
   }
 
   // --- ACTIVIDAD DE GRUPO Y CLAN (CALENDARIO SEMANAL: LUNES A DOMINGO) ---
-  getMondayTimestamp(d = new Date()) {
-    const date = new Date(d);
+  getMondayTimestamp() {
+    const nowInChileStr = new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' });
+    const date = new Date(nowInChileStr);
     const day = date.getDay();
     const diff = date.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(date.setDate(diff));

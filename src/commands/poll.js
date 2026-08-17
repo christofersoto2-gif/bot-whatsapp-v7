@@ -3,14 +3,13 @@ const config = require('../../config');
 
 module.exports = {
   /**
-   * Crea una encuesta nativa de WhatsApp o con opciones personalizadas
+   * Crea una votación oficial de evento
    * Sintaxis: #votacion Título de la reunión | Opción 1 | Opción 2 | Opción 3
    */
   async handleCreatePoll(sock, jid, text, isGroup, isAdmin) {
     if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo se puede usar en grupos del clan.' });
     if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores o líderes pueden iniciar una votación de evento.' });
 
-    // Quitar el prefijo y el nombre del comando (#votacion, #poll, #encuesta)
     const rawInput = text.replace(new RegExp(`^${config.prefix}(votacion|poll|encuesta|voto)`, 'i'), '').trim();
 
     if (!rawInput) {
@@ -20,38 +19,49 @@ module.exports = {
       });
     }
 
-    // Separar título y opciones por la tubería "|"
     const parts = rawInput.split('|').map(p => p.trim()).filter(Boolean);
     const title = parts[0];
 
-    // Opciones por defecto si no se especifican opciones con "|"
     let options = parts.slice(1);
     if (options.length === 0) {
-      options = ['1. Yo voy 🙋‍♂️', '2. No puedo 🙅‍♂️', '3. En duda / Tal vez 🤔'];
+      options = ['Yo voy 🙋‍♂️', 'No puedo 🙅‍♂️', 'En duda / Tal vez 🤔'];
     }
 
     if (options.length < 2) {
       return sock.sendMessage(jid, { text: '⚠️ Una votación debe tener al menos 2 opciones de respuesta.' });
     }
 
-    // Enviar encuesta nativa de WhatsApp a través del socket
-    const pollMessage = await sock.sendMessage(jid, {
-      poll: {
-        name: `📊 VOTACIÓN DE CLAN: ${title}`,
-        values: options,
-        selectableCount: 1
-      }
+    // 1. Enviar encuesta nativa de WhatsApp
+    let pollMessage = null;
+    try {
+      pollMessage = await sock.sendMessage(jid, {
+        poll: {
+          name: `📊 VOTACIÓN DE CLAN: ${title}`,
+          values: options,
+          selectableCount: 1
+        }
+      });
+    } catch (e) {}
+
+    const pollId = pollMessage?.key?.id || `VOT-${Date.now()}`;
+    db.createPoll(jid, pollId, title, options, pollMessage?.message);
+
+    // 2. Enviar tarjeta instructiva clara con soporte para voto en texto / DM privado
+    let cardText = `📢 *¡NUEVA VOTACIÓN OFICIAL DE CLAN!* 📢\n\n` +
+                   `📌 *Evento:* ${title}\n\n`;
+
+    options.forEach((opt, idx) => {
+      cardText += `🔹 *${idx + 1}. ${opt}*\n`;
     });
 
-    const pollId = pollMessage.key.id;
-    db.createPoll(jid, pollId, title, options, pollMessage.message);
+    cardText += `\n-----------------------------------\n` +
+                `💡 *¿CÓMO VOTAR EN CANALES BLOQUEADOS O POR CHAT PRIVADO?*\n` +
+                `• Opción A: Toca directamente la opción en la encuesta nativa de arriba.\n` +
+                `• Opción B: Abre un chat privado con el bot y envía:\n` +
+                `  👉 *${config.prefix}votar 1* (o el número de tu elección)\n\n` +
+                `📊 _Usa *${config.prefix}resultados* en el canal de Resultados para ver la lista de votantes e inactivos._`;
 
-    await sock.sendMessage(jid, {
-      text: `📢 *¡NUEVA VOTACIÓN OFICIAL PUBLICADA!*\n\n` +
-            `📌 *Evento:* ${title}\n` +
-            `👥 *Opciones:* ${options.length}\n\n` +
-            `💡 _Usa ${config.prefix}resultados para ver la lista de votantes e integrantes que faltan por votar._`
-    });
+    await sock.sendMessage(jid, { text: cardText });
   },
 
   /**
@@ -66,75 +76,105 @@ module.exports = {
     }
 
     const pollGroupId = poll.sourceGroupId || jid;
-    let participants = groupMetadata.participants.map(p => p.id);
+    let participants = groupMetadata.participants;
 
-    // Si el comando #resultados se ejecutó en otro canal/grupo distinto a donde se publicó la votación
     if (pollGroupId !== jid) {
       try {
         const sourceMeta = await sock.groupMetadata(pollGroupId);
         if (sourceMeta && sourceMeta.participants) {
-          participants = sourceMeta.participants.map(p => p.id);
+          participants = sourceMeta.participants;
         }
       } catch (e) {}
     }
 
-    const normalizarId = (jid) => {
-      if (!jid) return '';
-      const cleanNumber = jid.split(':')[0].split('@')[0].replace(/[^0-9]/g, '');
-      return cleanNumber ? `${cleanNumber}@s.whatsapp.net` : jid;
-    };
+    const cleanNum = (id) => (id || '').split(':')[0].split('@')[0].replace(/[^0-9]/g, '');
+    const botNum = cleanNum(sock.user?.id || '');
 
-    const botJid = normalizarId(sock.user?.id || '');
-
-    const clanMembers = participants
-      .map(normalizarId)
-      .filter((id, idx, self) => id && id !== botJid && self.indexOf(id) === idx);
-
-    const votesSummary = poll.votesSummary || poll.options.map(opt => ({ name: opt, voters: [] }));
-
-    let allVoters = [];
-    votesSummary.forEach(v => {
-      if (v.voters) allVoters.push(...v.voters.map(normalizarId));
+    // Miembros reales del clan utilizando los JIDs originales de WhatsApp para que las menciones muestren el apodo
+    const memberMap = new Map();
+    participants.forEach(p => {
+      const num = cleanNum(p.id);
+      if (num && num !== botNum && !memberMap.has(num)) {
+        memberMap.set(num, p.id);
+      }
     });
 
-    const votedSet = new Set(allVoters);
+    // Combinar votos de la encuesta nativa y votos por texto/DM
+    const votesSummary = poll.options.map(opt => ({ name: opt, voters: [] }));
+    const votedNumsSet = new Set();
 
-    const pendingUsers = clanMembers.filter(pId => !votedSet.has(pId));
+    // 1. Cargar votos de votesSummary de Baileys / Nativas
+    if (poll.votesSummary) {
+      poll.votesSummary.forEach((vOpt, idx) => {
+        if (votesSummary[idx] && vOpt.voters) {
+          vOpt.voters.forEach(vJid => {
+            const num = cleanNum(vJid);
+            if (num && !votedNumsSet.has(num)) {
+              votedNumsSet.add(num);
+              const origJid = memberMap.get(num) || `${num}@s.whatsapp.net`;
+              votesSummary[idx].voters.push(origJid);
+            }
+          });
+        }
+      });
+    }
 
-    let totalVotos = allVoters.length;
+    // 2. Cargar votos por texto / DM (#votar 1)
+    if (poll.votes) {
+      Object.keys(poll.votes).forEach(userKey => {
+        const optIdx = poll.votes[userKey];
+        const num = cleanNum(userKey);
+        if (num && !votedNumsSet.has(num) && optIdx >= 0 && optIdx < votesSummary.length) {
+          votedNumsSet.add(num);
+          const origJid = memberMap.get(num) || `${num}@s.whatsapp.net`;
+          votesSummary[optIdx].voters.push(origJid);
+        }
+      });
+    }
+
+    // Calcular pendientes
+    const pendingJids = [];
+    memberMap.forEach((origJid, num) => {
+      if (!votedNumsSet.has(num)) {
+        pendingJids.push(origJid);
+      }
+    });
+
+    let totalVotos = votedNumsSet.size;
+    let totalMembers = memberMap.size;
+
     let text = `📊 *RESULTADOS DE LA VOTACIÓN OFICIAL* 📊\n\n` +
                `📌 *Evento:* ${poll.title}\n` +
-               `👥 *Total de votos recibidos:* ${totalVotos}/${clanMembers.length}\n\n`;
+               `👥 *Total de votos recibidos:* ${totalVotos}/${totalMembers}\n\n`;
 
     const mentions = [];
 
-    // Desglosar votos por cada opción usando el resumen agregado de Baileys
-    votesSummary.forEach(v => {
-      const voters = (v.voters || []).map(normalizarId);
-      text += `🔹 *${v.name}* (${voters.length} votos):\n`;
+    // Desglosar votos por cada opción
+    votesSummary.forEach((vOpt, idx) => {
+      text += `🔹 *${idx + 1}. ${vOpt.name}* (${vOpt.voters.length} votos):\n`;
 
-      if (voters.length === 0) {
+      if (vOpt.voters.length === 0) {
         text += `   _Ningún voto aún_\n\n`;
       } else {
-        voters.forEach(vId => {
-          const num = vId.split('@')[0];
+        vOpt.voters.forEach(vJid => {
+          const num = cleanNum(vJid);
           text += `   • @${num}\n`;
-          mentions.push(vId);
+          mentions.push(vJid);
         });
         text += `\n`;
       }
     });
 
     text += `-----------------------------------\n` +
-            `👻 *PENDIENTES POR VOTAR (${pendingUsers.length} sin responder):*\n`;
+            `👻 *PENDIENTES POR VOTAR (${pendingJids.length} sin responder):*\n`;
 
-    if (pendingUsers.length === 0) {
+    if (pendingJids.length === 0) {
       text += `🎉 ¡Increíble! El 100% de los integrantes del clan ya votó.`;
     } else {
-      pendingUsers.forEach((pId, idx) => {
-        const num = pId.split('@')[0];
+      pendingJids.forEach((pJid, idx) => {
+        const num = cleanNum(pJid);
         text += `${idx + 1}. @${num}\n`;
-        mentions.push(pId);
+        mentions.push(pJid);
       });
     }
 
@@ -159,12 +199,10 @@ module.exports = {
   },
 
   /**
-   * Permite votar por texto usando #votar <número> como alternativa
+   * Permite votar por texto usando #votar <número> tanto en Grupo como en Chat Privado (DM)
    */
   async handleVotarText(sock, jid, args, sender, isGroup) {
-    if (!isGroup) return sock.sendMessage(jid, { text: '❌ Comando solo para grupos.' });
-
-    const poll = db.getActivePoll(jid);
+    const poll = db.getActivePoll(isGroup ? jid : null);
     if (!poll) {
       return sock.sendMessage(jid, { text: 'ℹ️ No hay ninguna votación activa en este momento.' });
     }
@@ -177,12 +215,16 @@ module.exports = {
     }
 
     const optionIndex = optNum - 1;
-    db.recordPollVote(jid, sender, optionIndex);
+    const targetGroupId = poll.sourceGroupId || jid;
+    db.recordPollVote(targetGroupId, sender, optionIndex);
 
-    const userNumber = sender.split('@')[0];
+    const selectedOptText = poll.options[optionIndex];
+
     await sock.sendMessage(jid, {
-      text: `✅ @${userNumber} has registrado tu voto por la opción: *${poll.options[optionIndex]}*`,
-      mentions: [sender]
+      text: `✅ *¡VOTO REGISTRADO EXITOSAMENTE!*\n\n` +
+            `📌 *Evento:* ${poll.title}\n` +
+            `🗳️ *Tu elección:* ${optNum}. ${selectedOptText}\n\n` +
+            `_¡Gracias por responder! Los resultados se actualizarán automáticamente._`
     });
   }
 };
