@@ -4,7 +4,8 @@ const {
   DisconnectReason, 
   fetchLatestBaileysVersion, 
   makeCacheableSignalKeyStore,
-  getAggregateVotesInPollMessage
+  getAggregateVotesInPollMessage,
+  decryptPollVote
 } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
 const pino = require('pino');
@@ -152,9 +153,60 @@ async function startBot() {
         
         if (activePoll && activePoll.pollMessage) {
           const updatesList = Array.isArray(pollUpdates) ? pollUpdates : [pollUpdates];
-          
+          const pollCreationMsg = activePoll.pollMessage?.pollCreationMessage || activePoll.pollMessage?.pollCreationMessageV2 || activePoll.pollMessage?.pollCreationMessageV3;
+          const pollEncKey = pollCreationMsg?.encKey ? Buffer.from(pollCreationMsg.encKey) : null;
+          const botRawId = sock.user?.id || '';
+          const botNumber = (botRawId.split(':')[0] || '').split('@')[0].replace(/[^0-9]/g, '');
+
+          const creatorCandidates = [
+            activePoll.creatorJid,
+            botRawId,
+            botNumber ? `${botNumber}@s.whatsapp.net` : null,
+            jid
+          ];
+
           for (const pUpd of updatesList) {
-            db.addPollUpdate(activePoll.sourceGroupId || jid, pUpd);
+            const voterRaw = pUpd.pollUpdateMessageKey?.participant || update.key?.participant || update.participant || jid;
+            const voterNumber = (voterRaw.split(':')[0] || '').split('@')[0].replace(/[^0-9]/g, '');
+            const voterJid = voterNumber ? `${voterNumber}@s.whatsapp.net` : voterRaw;
+
+            const voterCandidates = [
+              voterRaw,
+              voterJid,
+              pUpd.pollUpdateMessageKey?.remoteJid
+            ];
+
+            let decryptedVote = null;
+            if (pollEncKey && pUpd.vote) {
+              try {
+                for (const cJid of creatorCandidates) {
+                  if (!cJid || decryptedVote) continue;
+                  for (const vJid of voterCandidates) {
+                    if (!vJid || decryptedVote) continue;
+                    try {
+                      decryptedVote = decryptPollVote(pUpd.vote, {
+                        pollCreatorJid: cJid,
+                        pollMsgId: activePoll.id,
+                        pollEncKey: pollEncKey,
+                        voterJid: vJid
+                      });
+                    } catch (e) {}
+                  }
+                }
+              } catch (e) {}
+            }
+
+            const cleanUpdateRecord = {
+              pollUpdateMessageKey: {
+                remoteJid: jid,
+                participant: voterJid,
+                fromMe: pUpd.pollUpdateMessageKey?.fromMe || false,
+                id: pUpd.pollUpdateMessageKey?.id || update.key?.id
+              },
+              vote: decryptedVote || pUpd.vote || pUpd
+            };
+
+            db.addPollUpdate(activePoll.sourceGroupId || jid, cleanUpdateRecord);
           }
 
           try {
@@ -162,10 +214,10 @@ async function startBot() {
             const votesSummary = getAggregateVotesInPollMessage({
               message: freshPoll.pollMessage,
               pollUpdates: freshPoll.pollUpdates
-            }, sock.user?.id || '');
+            }, botRawId);
 
             db.updatePollVotesSummary(activePoll.sourceGroupId || jid, votesSummary);
-            console.log(`[Baileys Poll Aggregate ÉXITO] ¡Voto registrado y procesado para la encuesta: ${freshPoll.title}!`);
+            console.log(`[Baileys Poll Aggregate ÉXITO] ¡Voto registrado y descifrado para la encuesta: ${freshPoll.title}!`);
           } catch (err) {
             console.error('Error calculando votos con getAggregateVotesInPollMessage:', err);
           }
