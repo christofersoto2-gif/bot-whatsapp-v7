@@ -144,38 +144,58 @@ async function startBot() {
   });
 
   sock.ev.on('messages.update', async (updates) => {
+    // LOG DIAGNÓSTICO: Ver TODOS los eventos messages.update que llegan
+    console.log('[Poll Debug] messages.update disparado. Total updates:', updates.length);
     for (const update of updates) {
-      if (!update.pollUpdates) continue;
+      console.log('[Poll Debug] update.key:', JSON.stringify(update.key));
+      console.log('[Poll Debug] update.pollUpdates:', JSON.stringify(update.pollUpdates));
+      console.log('[Poll Debug] update.update?.pollUpdates:', JSON.stringify(update.update?.pollUpdates));
+      console.log('[Poll Debug] Claves de update:', Object.keys(update));
+
+      // Buscar pollUpdates en cualquier nivel posible
+      const pollUpdates = update.pollUpdates || update.update?.pollUpdates;
+      if (!pollUpdates) {
+        console.log('[Poll Debug] No hay pollUpdates en este update — omitiendo.');
+        continue;
+      }
 
       const pollMsgId = update.key?.id;
       const jid = update.key?.remoteJid;
       if (!pollMsgId || !jid) continue;
 
-      const activePoll = db.getActivePoll(jid);
-      if (!activePoll || activePoll.id !== pollMsgId) continue;
+      console.log('[Poll Debug] pollUpdates detectados para jid:', jid, 'pollMsgId:', pollMsgId);
 
-      const originalMessage = activePoll.pollMessage;
-      if (!originalMessage) {
-        console.log('[Poll] No se encontró el mensaje original de la encuesta en la base de datos.');
+      const activePoll = db.getActivePoll(jid);
+      if (!activePoll) {
+        console.log('[Poll Debug] No hay encuesta activa para este jid.');
+        continue;
+      }
+      if (activePoll.id !== pollMsgId) {
+        console.log('[Poll Debug] IDs no coinciden. activePoll.id:', activePoll.id, '!== pollMsgId:', pollMsgId);
         continue;
       }
 
-      // Acumular el voto por usuario (reemplazar si ya había uno del mismo votante)
-      db.addPollUpdates(activePoll.sourceGroupId || jid, update.pollUpdates);
+      const originalMessage = activePoll.pollMessage;
+      if (!originalMessage) {
+        console.log('[Poll Debug] No se encontró pollMessage en la base de datos.');
+        continue;
+      }
+
+      console.log('[Poll Debug] pollMessage existe, tipo:', typeof originalMessage, 'claves:', Object.keys(originalMessage || {}));
+
+      db.addPollUpdates(activePoll.sourceGroupId || jid, Array.isArray(pollUpdates) ? pollUpdates : [pollUpdates]);
 
       try {
         const freshPoll = db.getActivePoll(jid);
-
-        // Pasar el mensaje original intacto y los pollUpdates crudos acumulados
         const votesSummary = getAggregateVotesInPollMessage({
           message: freshPoll.pollMessage,
           pollUpdates: freshPoll.pollUpdates
         }, sock.user?.id || '');
 
-        console.log('[Poll] Votos desencriptados:', JSON.stringify(votesSummary));
+        console.log('[Poll Debug] votesSummary resultado:', JSON.stringify(votesSummary));
         db.updatePollVotesSummary(activePoll.sourceGroupId || jid, votesSummary);
       } catch (err) {
-        console.error('[Poll] Error en getAggregateVotesInPollMessage:', err.message);
+        console.error('[Poll Debug] Error en getAggregateVotesInPollMessage:', err.message, err.stack);
       }
     }
   });
