@@ -53,7 +53,11 @@ class DatabaseManager {
       let doc = await DbModel.findOne({});
       if (doc && doc.data) {
         console.log('📦 Cargando base de datos persistente desde MongoDB...');
-        this.data = rehydrateBuffers(doc.data);
+        // Convertir la data de Mongo a string para aplicar el BufferJSON.reviver
+        // y evitar problemas de corrupción con Binary BSON types
+        const jsonStr = JSON.stringify(doc.data);
+        this.data = JSON.parse(jsonStr, BufferJSON.reviver);
+        this.data = rehydrateBuffers(this.data);
       } else {
         console.log('🆕 No se encontraron datos en MongoDB. Se creará un nuevo documento al guardar.');
       }
@@ -89,8 +93,11 @@ class DatabaseManager {
 
       // Sincronización en segundo plano con MongoDB
       if (this.mongoConnected) {
+        // Parsear usando JSON.parse(jsonStr) para que Mongoose guarde objetos planos 
+        // idénticos a los que maneja Baileys con { type: 'Buffer', data: [...] }
+        const parsedDataForMongo = JSON.parse(jsonStr);
         // Ejecutamos la actualización sin usar await para no bloquear los procesos sincrónicos
-        DbModel.updateOne({}, { data: this.data }, { upsert: true }).catch(err => {
+        DbModel.updateOne({}, { data: parsedDataForMongo }, { upsert: true }).catch(err => {
           console.error('⚠️ Error sincronizando con MongoDB en segundo plano:', err.message);
         });
       }
