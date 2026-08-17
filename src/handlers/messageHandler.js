@@ -154,37 +154,74 @@ async function handleMessage(sock, msg) {
 
 
     // Votos de encuestas nativas: llegan como messages.upsert con tipo pollUpdateMessage
+    // El vote.encPayload + vote.encIv están encriptados → necesitamos decryptPollVote primero
     if (messageType === 'pollUpdateMessage') {
-      console.log('[Poll] Voto recibido via upsert (pollUpdateMessage)');
+      const { decryptPollVote, getAggregateVotesInPollMessage } = require('@whiskeysockets/baileys');
+
       const pollUpdateMsg = msg.message.pollUpdateMessage;
       const pollCreationMsgId = pollUpdateMsg?.pollCreationMessageKey?.id;
-      const voterJid = msg.key?.participant || senderRaw;
 
-      console.log('[Poll] pollCreationMsgId:', pollCreationMsgId, '| voterJid:', voterJid);
+      // Normalizar JID: quitar sufijo de dispositivo (:X) pero conservar @s.whatsapp.net
+      const normalizeJid = (j) => {
+        if (!j) return '';
+        const parts = j.split('@');
+        return parts[0].split(':')[0] + '@' + (parts[1] || 's.whatsapp.net');
+      };
+
+      const voterJidRaw = msg.key?.participant || senderRaw;
+      const voterJid = normalizeJid(voterJidRaw);
+
+      console.log('[Poll] Voto recibido — pollCreationMsgId:', pollCreationMsgId, '| voterJid:', voterJid);
 
       const activePoll = db.getActivePoll(jid);
-      if (!activePoll) {
-        console.log('[Poll] No hay encuesta activa para jid:', jid);
+      if (!activePoll) { console.log('[Poll] Sin encuesta activa para:', jid); return; }
+      if (activePoll.id !== pollCreationMsgId) {
+        console.log('[Poll] ID no coincide. activo:', activePoll.id, ' voto:', pollCreationMsgId); return;
+      }
+
+      // Obtener la clave de encriptación del poll (desde pollCreationMessage o messageContextInfo)
+      const rawKey = activePoll.pollMessage?.pollCreationMessage?.encKey
+        || activePoll.pollMessage?.messageContextInfo?.messageSecret;
+
+      if (!rawKey) {
+        console.log('[Poll] No se encontró encKey en pollMessage guardado.');
         return;
       }
-      if (activePoll.id !== pollCreationMsgId) {
-        console.log('[Poll] IDs no coinciden. activePoll.id:', activePoll.id, '!== pollCreationMsgId:', pollCreationMsgId);
+      const pollEncKey = Buffer.isBuffer(rawKey) ? rawKey : Buffer.from(Object.values(rawKey));
+
+      const pollCreatorJid = normalizeJid(sock.user?.id || '');
+      const pollMsgId = activePoll.id;
+
+      console.log('[Poll] pollEncKey length:', pollEncKey.length, '| pollCreatorJid:', pollCreatorJid);
+
+      let decryptedVote;
+      try {
+        decryptedVote = decryptPollVote(pollUpdateMsg.vote, {
+          pollCreatorJid,
+          pollMsgId,
+          pollEncKey,
+          voterJid
+        });
+        console.log('[Poll] Voto desencriptado OK — selectedOptions count:', decryptedVote?.selectedOptions?.length);
+      } catch (err) {
+        console.error('[Poll] Error en decryptPollVote:', err.message);
         return;
       }
 
-      // Construir el objeto pollUpdate que espera getAggregateVotesInPollMessage
+      // Guardar el pollUpdate con los selectedOptions YA desencriptados
       const pollUpdate = {
-        pollUpdateMessageKey: msg.key,        // contiene participant, remoteJid, fromMe, id
-        vote: pollUpdateMsg.vote,             // voto encriptado original
+        pollUpdateMessageKey: {
+          ...msg.key,
+          participant: voterJid  // usar JID normalizado
+        },
+        vote: decryptedVote,   // selectedOptions = SHA256 hashes de opciones votadas
         senderTimestampMs: pollUpdateMsg.senderTimestampMs
       };
 
-      console.log('[Poll] Guardando pollUpdate para votante:', voterJid);
       db.addPollUpdate(activePoll.sourceGroupId || jid, pollUpdate);
 
       try {
         const freshPoll = db.getActivePoll(jid);
-        const { getAggregateVotesInPollMessage } = require('@whiskeysockets/baileys');
         const votesSummary = getAggregateVotesInPollMessage({
           message: freshPoll.pollMessage,
           pollUpdates: freshPoll.pollUpdates
