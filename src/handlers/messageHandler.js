@@ -430,9 +430,6 @@ async function handleMessage(sock, msg) {
         await pollCmd.handleClosePoll(sock, jid, isGroup, isAdmin);
         break;
 
-      case 'votar':
-        await pollCmd.handleVotarText(sock, jid, args, sender, isGroup);
-        break;
 
       // --- MODERACIÓN DISCORD ---
       case 'close':

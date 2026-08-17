@@ -46,7 +46,7 @@ module.exports = {
     const pollId = pollMessage?.key?.id || `VOT-${Date.now()}`;
     db.createPoll(jid, pollId, title, options, pollMessage?.message);
 
-    // 2. Enviar tarjeta instructiva clara con soporte para voto en texto / DM privado
+    // 2. Enviar tarjeta informativa de la votación
     let cardText = `📢 *¡NUEVA VOTACIÓN OFICIAL DE CLAN!* 📢\n\n` +
                    `📌 *Evento:* ${title}\n\n`;
 
@@ -55,11 +55,8 @@ module.exports = {
     });
 
     cardText += `\n-----------------------------------\n` +
-                `💡 *¿CÓMO VOTAR EN CANALES BLOQUEADOS O POR CHAT PRIVADO?*\n` +
-                `• Opción A: Toca directamente la opción en la encuesta nativa de arriba.\n` +
-                `• Opción B: Abre un chat privado con el bot y envía:\n` +
-                `  👉 *${config.prefix}votar 1* (o el número de tu elección)\n\n` +
-                `📊 _Usa *${config.prefix}resultados* en el canal de Resultados para ver la lista de votantes e inactivos._`;
+                `💡 *Toca tu opción directamente en la encuesta de arriba para votar.*\n\n` +
+                `📊 _Usa *${config.prefix}resultados* para ver los votantes y los pendientes._`;
 
     await sock.sendMessage(jid, { text: cardText });
   },
@@ -99,11 +96,10 @@ module.exports = {
       }
     });
 
-    // Combinar votos de la encuesta nativa y votos por texto/DM
+    // Cargar votos de la encuesta nativa (vía Baileys)
     const votesSummary = poll.options.map(opt => ({ name: opt, voters: [] }));
     const votedNumsSet = new Set();
 
-    // 1. Cargar votos de votesSummary de Baileys / Nativas
     if (poll.votesSummary) {
       poll.votesSummary.forEach((vOpt, idx) => {
         if (votesSummary[idx] && vOpt.voters) {
@@ -115,19 +111,6 @@ module.exports = {
               votesSummary[idx].voters.push(origJid);
             }
           });
-        }
-      });
-    }
-
-    // 2. Cargar votos por texto / DM (#votar 1)
-    if (poll.votes) {
-      Object.keys(poll.votes).forEach(userKey => {
-        const optIdx = poll.votes[userKey];
-        const num = cleanNum(userKey);
-        if (num && !votedNumsSet.has(num) && optIdx >= 0 && optIdx < votesSummary.length) {
-          votedNumsSet.add(num);
-          const origJid = memberMap.get(num) || `${num}@s.whatsapp.net`;
-          votesSummary[optIdx].voters.push(origJid);
         }
       });
     }
@@ -198,33 +181,4 @@ module.exports = {
     });
   },
 
-  /**
-   * Permite votar por texto usando #votar <número> tanto en Grupo como en Chat Privado (DM)
-   */
-  async handleVotarText(sock, jid, args, sender, isGroup) {
-    const poll = db.getActivePoll(isGroup ? jid : null);
-    if (!poll) {
-      return sock.sendMessage(jid, { text: 'ℹ️ No hay ninguna votación activa en este momento.' });
-    }
-
-    const optNum = parseInt(args[0]);
-    if (isNaN(optNum) || optNum < 1 || optNum > poll.options.length) {
-      return sock.sendMessage(jid, {
-        text: `⚠️ Opción inválida. Elige un número del 1 al ${poll.options.length}.\n*Ejemplo:* ${config.prefix}votar 1`
-      });
-    }
-
-    const optionIndex = optNum - 1;
-    const targetGroupId = poll.sourceGroupId || jid;
-    db.recordPollVote(targetGroupId, sender, optionIndex);
-
-    const selectedOptText = poll.options[optionIndex];
-
-    await sock.sendMessage(jid, {
-      text: `✅ *¡VOTO REGISTRADO EXITOSAMENTE!*\n\n` +
-            `📌 *Evento:* ${poll.title}\n` +
-            `🗳️ *Tu elección:* ${optNum}. ${selectedOptText}\n\n` +
-            `_¡Gracias por responder! Los resultados se actualizarán automáticamente._`
-    });
-  }
 };
