@@ -392,6 +392,30 @@ class DatabaseManager {
     return true;
   }
 
+  // Acepta el array crudo update.pollUpdates de Baileys y acumula por usuario
+  addPollUpdates(groupId, pollUpdatesArray) {
+    if (!Array.isArray(pollUpdatesArray)) return false;
+    const group = this.getGroup(groupId);
+    if (!group.poll) return false;
+    if (!group.poll.pollUpdates) group.poll.pollUpdates = [];
+
+    for (const pUpd of pollUpdatesArray) {
+      const senderJid = pUpd.pollUpdateMessageKey?.participant;
+      const cleanSender = normalizarId(senderJid);
+
+      // Reemplazar voto previo del mismo usuario
+      group.poll.pollUpdates = group.poll.pollUpdates.filter(u => {
+        const existingClean = normalizarId(u.pollUpdateMessageKey?.participant);
+        return existingClean !== cleanSender;
+      });
+
+      group.poll.pollUpdates.push(pUpd);
+    }
+
+    this.save();
+    return true;
+  }
+
   updatePollVotesSummary(groupId, votesSummary) {
     const group = this.getGroup(groupId);
     if (!group.poll) return false;

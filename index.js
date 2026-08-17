@@ -145,83 +145,37 @@ async function startBot() {
 
   sock.ev.on('messages.update', async (updates) => {
     for (const update of updates) {
-      const pollUpdates = update.pollUpdates || update.update?.pollUpdates || update.update?.message?.pollUpdateMessage;
-      
-      if (pollUpdates) {
-        const jid = update.key?.remoteJid || update.update?.key?.remoteJid;
-        const activePoll = db.getActivePoll(jid);
-        
-        if (activePoll && activePoll.pollMessage) {
-          const updatesList = Array.isArray(pollUpdates) ? pollUpdates : [pollUpdates];
-          const pollCreationMsg = activePoll.pollMessage?.pollCreationMessage || activePoll.pollMessage?.pollCreationMessageV2 || activePoll.pollMessage?.pollCreationMessageV3;
-          const pollEncKey = pollCreationMsg?.encKey ? Buffer.from(pollCreationMsg.encKey) : null;
-          const botRawId = sock.user?.id || '';
-          const botNumber = (botRawId.split(':')[0] || '').split('@')[0].replace(/[^0-9]/g, '');
+      if (!update.pollUpdates) continue;
 
-          const creatorCandidates = [
-            activePoll.creatorJid,
-            botRawId,
-            botNumber ? `${botNumber}@s.whatsapp.net` : null,
-            jid
-          ];
+      const pollMsgId = update.key?.id;
+      const jid = update.key?.remoteJid;
+      if (!pollMsgId || !jid) continue;
 
-          for (const pUpd of updatesList) {
-            const voterRaw = pUpd.pollUpdateMessageKey?.participant || update.key?.participant || update.participant || jid;
-            const voterNumber = (voterRaw.split(':')[0] || '').split('@')[0].replace(/[^0-9]/g, '');
-            const voterJid = voterNumber ? `${voterNumber}@s.whatsapp.net` : voterRaw;
+      const activePoll = db.getActivePoll(jid);
+      if (!activePoll || activePoll.id !== pollMsgId) continue;
 
-            const voterCandidates = [
-              voterRaw,
-              voterJid,
-              pUpd.pollUpdateMessageKey?.remoteJid
-            ];
+      const originalMessage = activePoll.pollMessage;
+      if (!originalMessage) {
+        console.log('[Poll] No se encontró el mensaje original de la encuesta en la base de datos.');
+        continue;
+      }
 
-            let decryptedVote = null;
-            if (pollEncKey && pUpd.vote) {
-              try {
-                for (const cJid of creatorCandidates) {
-                  if (!cJid || decryptedVote) continue;
-                  for (const vJid of voterCandidates) {
-                    if (!vJid || decryptedVote) continue;
-                    try {
-                      decryptedVote = decryptPollVote(pUpd.vote, {
-                        pollCreatorJid: cJid,
-                        pollMsgId: activePoll.id,
-                        pollEncKey: pollEncKey,
-                        voterJid: vJid
-                      });
-                    } catch (e) {}
-                  }
-                }
-              } catch (e) {}
-            }
+      // Acumular el voto por usuario (reemplazar si ya había uno del mismo votante)
+      db.addPollUpdates(activePoll.sourceGroupId || jid, update.pollUpdates);
 
-            const cleanUpdateRecord = {
-              pollUpdateMessageKey: {
-                remoteJid: jid,
-                participant: voterJid,
-                fromMe: pUpd.pollUpdateMessageKey?.fromMe || false,
-                id: pUpd.pollUpdateMessageKey?.id || update.key?.id
-              },
-              vote: decryptedVote || pUpd.vote || pUpd
-            };
+      try {
+        const freshPoll = db.getActivePoll(jid);
 
-            db.addPollUpdate(activePoll.sourceGroupId || jid, cleanUpdateRecord);
-          }
+        // Pasar el mensaje original intacto y los pollUpdates crudos acumulados
+        const votesSummary = getAggregateVotesInPollMessage({
+          message: freshPoll.pollMessage,
+          pollUpdates: freshPoll.pollUpdates
+        }, sock.user?.id || '');
 
-          try {
-            const freshPoll = db.getActivePoll(jid);
-            const votesSummary = getAggregateVotesInPollMessage({
-              message: freshPoll.pollMessage,
-              pollUpdates: freshPoll.pollUpdates
-            }, botRawId);
-
-            db.updatePollVotesSummary(activePoll.sourceGroupId || jid, votesSummary);
-            console.log(`[Baileys Poll Aggregate ÉXITO] ¡Voto registrado y descifrado para la encuesta: ${freshPoll.title}!`);
-          } catch (err) {
-            console.error('Error calculando votos con getAggregateVotesInPollMessage:', err);
-          }
-        }
+        console.log('[Poll] Votos desencriptados:', JSON.stringify(votesSummary));
+        db.updatePollVotesSummary(activePoll.sourceGroupId || jid, votesSummary);
+      } catch (err) {
+        console.error('[Poll] Error en getAggregateVotesInPollMessage:', err.message);
       }
     }
   });
