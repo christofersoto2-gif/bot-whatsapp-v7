@@ -78,24 +78,28 @@ module.exports = {
       } catch (e) {}
     }
 
-    const botNum = (sock.user?.id || '').split(':')[0].split('@')[0].replace(/[^0-9]/g, '');
-    const cleanNum = (id) => id.split(':')[0].split('@')[0].replace(/[^0-9]/g, '');
+    const normalizarId = (jid) => {
+      if (!jid) return '';
+      const cleanNumber = jid.split(':')[0].split('@')[0].replace(/[^0-9]/g, '');
+      return cleanNumber ? `${cleanNumber}@s.whatsapp.net` : jid;
+    };
 
-    const clanMembers = participants.filter(id => cleanNum(id) !== botNum);
+    const botJid = normalizarId(sock.user?.id || '');
+
+    const clanMembers = participants
+      .map(normalizarId)
+      .filter((id, idx, self) => id && id !== botJid && self.indexOf(id) === idx);
 
     const votesSummary = poll.votesSummary || poll.options.map(opt => ({ name: opt, voters: [] }));
 
     let allVoters = [];
     votesSummary.forEach(v => {
-      if (v.voters) allVoters.push(...v.voters);
+      if (v.voters) allVoters.push(...v.voters.map(normalizarId));
     });
 
-    const votedNums = allVoters.map(v => cleanNum(v));
+    const votedSet = new Set(allVoters);
 
-    const pendingUsers = clanMembers.filter(pId => {
-      const pNum = cleanNum(pId);
-      return !votedNums.includes(pNum);
-    });
+    const pendingUsers = clanMembers.filter(pId => !votedSet.has(pId));
 
     let totalVotos = allVoters.length;
     let text = `📊 *RESULTADOS DE LA VOTACIÓN OFICIAL* 📊\n\n` +
@@ -106,14 +110,15 @@ module.exports = {
 
     // Desglosar votos por cada opción usando el resumen agregado de Baileys
     votesSummary.forEach(v => {
-      const voters = v.voters || [];
+      const voters = (v.voters || []).map(normalizarId);
       text += `🔹 *${v.name}* (${voters.length} votos):\n`;
 
       if (voters.length === 0) {
         text += `   _Ningún voto aún_\n\n`;
       } else {
         voters.forEach(vId => {
-          text += `   • @${vId.split('@')[0]}\n`;
+          const num = vId.split('@')[0];
+          text += `   • @${num}\n`;
           mentions.push(vId);
         });
         text += `\n`;
@@ -127,7 +132,8 @@ module.exports = {
       text += `🎉 ¡Increíble! El 100% de los integrantes del clan ya votó.`;
     } else {
       pendingUsers.forEach((pId, idx) => {
-        text += `${idx + 1}. @${pId.split('@')[0]}\n`;
+        const num = pId.split('@')[0];
+        text += `${idx + 1}. @${num}\n`;
         mentions.push(pId);
       });
     }

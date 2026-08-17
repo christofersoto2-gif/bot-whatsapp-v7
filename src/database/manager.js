@@ -18,6 +18,12 @@ function rehydrateBuffers(obj) {
   return obj;
 }
 
+const normalizarId = (jid) => {
+  if (!jid) return '';
+  const cleanNumber = jid.split(':')[0].split('@')[0].replace(/[^0-9]/g, '');
+  return cleanNumber ? `${cleanNumber}@s.whatsapp.net` : jid;
+};
+
 class DatabaseManager {
   constructor() {
     this.data = {
@@ -365,21 +371,33 @@ class DatabaseManager {
 
     if (!group.poll.pollUpdates) group.poll.pollUpdates = [];
 
-    // Prevenir duplicados de actualizacion
-    const updateKey = JSON.stringify(update.key || update.pollUpdateMessageKey || update.senderTimestampMs || Date.now());
-    const exists = group.poll.pollUpdates.some(u => JSON.stringify(u.key || u.pollUpdateMessageKey || u.senderTimestampMs) === updateKey);
-    
-    if (!exists) {
-      group.poll.pollUpdates.push(update);
-      this.save();
-    }
+    const newSenderJid = update.pollUpdateMessageKey?.participant || update.key?.participant || update.participant;
+    const newCleanSender = normalizarId(newSenderJid);
+
+    // Reemplazar voto previo del mismo usuario para evitar acumulacion de parches viejos
+    const filteredUpdates = group.poll.pollUpdates.filter(u => {
+      const existingSenderJid = u.pollUpdateMessageKey?.participant || u.key?.participant || u.participant;
+      const existingClean = normalizarId(existingSenderJid);
+      return existingClean !== newCleanSender;
+    });
+
+    filteredUpdates.push(update);
+    group.poll.pollUpdates = filteredUpdates;
+    this.save();
     return true;
   }
 
   updatePollVotesSummary(groupId, votesSummary) {
     const group = this.getGroup(groupId);
     if (!group.poll) return false;
-    group.poll.votesSummary = votesSummary;
+
+    // Normalizar todos los JIDs de votantes eliminando sufijos de dispositivo (:xx)
+    const cleanSummary = (votesSummary || []).map(opt => ({
+      name: opt.name,
+      voters: (opt.voters || []).map(normalizarId).filter((v, idx, self) => self.indexOf(v) === idx)
+    }));
+
+    group.poll.votesSummary = cleanSummary;
     this.save();
     return true;
   }
