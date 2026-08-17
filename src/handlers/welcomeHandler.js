@@ -13,18 +13,12 @@ async function handleParticipantUpdate(sock, update) {
     const groupName = groupMetadata ? groupMetadata.subject.toLowerCase() : '';
     const groupData = db.getGroup(jid);
 
-    // Determinar si el grupo es Lobby o General (vía base de datos o por nombre del grupo)
+    // Solo enviar bienvenida si el grupo fue configurado EXPLÍCITAMENTE
+    // con #setlobby o #setgeneral. No detectar por nombre del grupo para
+    // evitar enviar mensajes en grupos equivocados.
     let type = groupData.groupType || null;
 
-    if (!type) {
-      if (groupName.includes('lobby') || groupName.includes('bienvenido')) {
-        type = 'lobby';
-      } else if (groupName.includes('general')) {
-        type = 'general';
-      }
-    }
-
-    if (!type) return; // Si no es ni lobby ni general, no envía bienvenida automática
+    if (!type) return; // Sin configuración explícita → sin bienvenida
 
     for (const participant of participants) {
       const number = participant.split('@')[0];
