@@ -19,11 +19,16 @@ async function sendLobbyWelcome(sock, jid, participant) {
     `⸻ 𝗥𝗲𝗾𝘂𝗶𝘀𝗶𝘁𝗼 𝗼𝗯𝗹𝗶𝗴𝗮𝘁𝗼𝗿𝗶𝗼: Al ser agregado al clan deberás utilizar automáticamente las iniciales V7.`;
 
   if (config.lobbyWelcomeImageUrl) {
-    await sock.sendMessage(jid, {
-      image: { url: config.lobbyWelcomeImageUrl },
-      caption: text,
-      mentions: [participant]
-    });
+    try {
+      await sock.sendMessage(jid, {
+        image: { url: config.lobbyWelcomeImageUrl },
+        caption: text,
+        mentions: [participant]
+      });
+    } catch (imgErr) {
+      console.warn('[Welcome] No se pudo cargar la imagen del lobby, enviando solo texto:', imgErr.message);
+      await sock.sendMessage(jid, { text, mentions: [participant] });
+    }
   } else {
     await sock.sendMessage(jid, { text, mentions: [participant] });
   }
@@ -42,11 +47,16 @@ async function sendGeneralWelcome(sock, jid, participant) {
     `¡Bienvenid@ a la familia Dynasty V7!`;
 
   if (config.generalWelcomeImageUrl) {
-    await sock.sendMessage(jid, {
-      image: { url: config.generalWelcomeImageUrl },
-      caption: text,
-      mentions: [participant]
-    });
+    try {
+      await sock.sendMessage(jid, {
+        image: { url: config.generalWelcomeImageUrl },
+        caption: text,
+        mentions: [participant]
+      });
+    } catch (imgErr) {
+      console.warn('[Welcome] No se pudo cargar la imagen del general, enviando solo texto:', imgErr.message);
+      await sock.sendMessage(jid, { text, mentions: [participant] });
+    }
   } else {
     await sock.sendMessage(jid, { text, mentions: [participant] });
   }
