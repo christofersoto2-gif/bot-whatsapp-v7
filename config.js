@@ -11,6 +11,6 @@ module.exports = {
 
   // URLs de imágenes para los mensajes de bienvenida (dejar en null para solo texto)
   // Ejemplo: 'https://i.imgur.com/XXXXXXX.jpg'
-  lobbyWelcomeImageUrl: null,    // Imagen para el Lobby (ficha de postulación)
-  generalWelcomeImageUrl: null,  // Imagen para el General (bienvenida al clan)
+  lobbyWelcomeImageUrl: 'https://i.imgur.com/msuUiJF.jpg',    // Imagen para el Lobby (ficha de postulación)
+  generalWelcomeImageUrl: 'https://i.imgur.com/msuUiJF.jpg',  // Imagen para el General (bienvenida al clan)
 };
