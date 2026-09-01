@@ -555,6 +555,12 @@ async function handleMessage(sock, msg) {
         await sock.sendMessage(jid, { text: '✅ *Grupo configurado como GENERAL V7.*\n\nCada miembro nuevo que ingrese recibirá el mensaje oficial de bienvenida al clan Dynasty V7.' });
         break;
 
+      case 'testwelcome':
+      case 'probarwelcome':
+      case 'probarbienvenida':
+        await welcomeHandler.handleWelcomeTest(sock, jid, sender, isGroup, isAdmin);
+        break;
+
       case 'setfichas':
         if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo se usa en grupos.' });
         if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden usar #setfichas.' });
