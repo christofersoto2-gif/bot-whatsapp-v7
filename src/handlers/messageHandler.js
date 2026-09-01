@@ -99,7 +99,7 @@ const groupMetadataCache = new Map();
 async function getCachedGroupMetadata(sock, jid) {
   const now = Date.now();
   const cached = groupMetadataCache.get(jid);
-  if (cached && (now - cached.timestamp < 5 * 60 * 1000)) {
+  if (cached && (now - cached.timestamp < 30 * 60 * 1000)) { // 30 minutos de caché
     return cached.data;
   }
   const fresh = await sock.groupMetadata(jid);
