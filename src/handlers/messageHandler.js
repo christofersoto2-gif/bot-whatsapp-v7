@@ -102,9 +102,18 @@ async function getCachedGroupMetadata(sock, jid) {
   if (cached && (now - cached.timestamp < 30 * 60 * 1000)) { // 30 minutos de caché
     return cached.data;
   }
-  const fresh = await sock.groupMetadata(jid);
-  groupMetadataCache.set(jid, { data: fresh, timestamp: now });
-  return fresh;
+  
+  try {
+    const fresh = await sock.groupMetadata(jid);
+    groupMetadataCache.set(jid, { data: fresh, timestamp: now });
+    return fresh;
+  } catch (err) {
+    console.log(`[Reintento] Falló metadata para ${jid}, intentando de nuevo en 1s...`);
+    await new Promise(res => setTimeout(res, 1000));
+    const freshRetry = await sock.groupMetadata(jid);
+    groupMetadataCache.set(jid, { data: freshRetry, timestamp: now });
+    return freshRetry;
+  }
 }
 
 function tryDecryptPollVote(vote, pollMsgId, pollEncKey, creatorCandidates, voterCandidates) {
