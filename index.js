@@ -70,6 +70,8 @@ async function startBot() {
     syncFullHistory: false,
     markOnlineOnConnect: true,
     generateHighQualityLinkPreview: true,
+    keepAliveIntervalMs: 10000,
+    defaultQueryTimeoutMs: 60000,
     getMessage: async () => undefined
   });
 
