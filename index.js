@@ -152,6 +152,69 @@ async function startBot() {
 
 
 
+  // Los votos del dueño del bot (fromMe) llegan por messages.update con vote ya desencriptado por Baileys.
+  // Se matchean por hash SHA256 directamente para no depender de getAggregateVotesInPollMessage.
+  sock.ev.on('messages.update', async (updates) => {
+    const crypto = require('crypto');
+    const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest();
+
+    for (const update of updates) {
+      const pollUpdates = update.pollUpdates;
+      if (!pollUpdates || !pollUpdates.length) continue;
+
+      const jid = update.key?.remoteJid;
+      const pollMsgId = update.key?.id;
+      if (!jid || !pollMsgId) continue;
+
+      const activePoll = db.getActivePoll(jid);
+      if (!activePoll || activePoll.id !== pollMsgId) continue;
+
+      // Solo votos fromMe — los de otros ya se procesan en messageHandler via messages.upsert
+      const ownVotes = pollUpdates.filter(u => u.pollUpdateMessageKey?.fromMe === true);
+      if (!ownVotes.length) continue;
+
+      const botId = sock.user?.id || '';
+      const botCleanJid = botId.split(':')[0] + '@s.whatsapp.net';
+      const botNum = botCleanJid.split('@')[0];
+
+      // Mapear hash SHA256 → nombre de opción
+      const hashToOption = {};
+      (activePoll.options || []).forEach(opt => {
+        const hash = sha256(Buffer.from(opt)).toString('binary');
+        hashToOption[hash] = opt;
+      });
+
+      // Encontrar qué opciones eligió el dueño
+      const selectedOptions = new Set();
+      for (const ownVote of ownVotes) {
+        for (const selBuf of (ownVote.vote?.selectedOptions || [])) {
+          const hash = Buffer.isBuffer(selBuf)
+            ? selBuf.toString('binary')
+            : Buffer.from(Object.values(selBuf)).toString('binary');
+          if (hashToOption[hash]) selectedOptions.add(hashToOption[hash]);
+        }
+      }
+
+      // Tomar el resumen existente, quitar voto anterior del dueño y añadir el nuevo
+      const base = activePoll.votesSummary || (activePoll.options || []).map(n => ({ name: n, voters: [] }));
+      const newSummary = base.map(optData => ({
+        name: optData.name,
+        voters: (optData.voters || []).filter(v => {
+          const n = (v || '').split(':')[0].split('@')[0].replace(/[^0-9]/g, '');
+          return n !== botNum;
+        })
+      }));
+
+      selectedOptions.forEach(optName => {
+        const opt = newSummary.find(o => o.name === optName);
+        if (opt) opt.voters.push(botCleanJid);
+      });
+
+      db.updatePollVotesSummary(activePoll.sourceGroupId || jid, newSummary);
+      console.log('[Poll fromMe] ✅ Voto propio registrado:', [...selectedOptions], '| JID:', botCleanJid);
+    }
+  });
+
   sock.ev.on('group-participants.update', async (update) => {
     try {
       await handleParticipantUpdate(sock, update);
