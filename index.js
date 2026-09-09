@@ -152,7 +152,58 @@ async function startBot() {
 
 
 
-  // Poll updates are handled exclusively in messageHandler.js via messages.upsert -> pollUpdateMessage
+  // Los votos propios del dueño del bot (fromMe) llegan ya desencriptados por Baileys en messages.update
+  // NO intentar desencriptarlos manualmente — solo guardarlos con el JID correcto del votante
+  sock.ev.on('messages.update', async (updates) => {
+    const { getAggregateVotesInPollMessage } = require('@whiskeysockets/baileys');
+
+    for (const update of updates) {
+      const pollUpdates = update.pollUpdates;
+      if (!pollUpdates || !Array.isArray(pollUpdates) || pollUpdates.length === 0) continue;
+
+      const jid = update.key?.remoteJid;
+      const pollMsgId = update.key?.id;
+      if (!jid || !pollMsgId) continue;
+
+      const activePoll = db.getActivePoll(jid);
+      if (!activePoll || activePoll.id !== pollMsgId) continue;
+
+      // Solo procesar votos fromMe (los propios del dueño del bot)
+      // Los de otras personas ya se manejan en messageHandler via messages.upsert → pollUpdateMessage
+      const ownVotes = pollUpdates.filter(u => u.pollUpdateMessageKey?.fromMe === true);
+      if (ownVotes.length === 0) continue;
+
+      // Obtener el JID limpio del dueño (sin sufijo de dispositivo :XX)
+      const botId = sock.user?.id || '';
+      const botCleanJid = botId.split(':')[0] + '@s.whatsapp.net';
+
+      // Reescribir el JID del votante con el número real del bot y fromMe:false
+      // para que getAggregateVotesInPollMessage lo reconozca como un votante normal
+      const normalizedVotes = ownVotes.map(u => ({
+        ...u,
+        pollUpdateMessageKey: {
+          ...u.pollUpdateMessageKey,
+          fromMe: false,
+          participant: botCleanJid
+        }
+      }));
+
+      db.addPollUpdates(activePoll.sourceGroupId || jid, normalizedVotes);
+
+      try {
+        const freshPoll = db.getActivePoll(jid);
+        const votesSummary = getAggregateVotesInPollMessage({
+          message: freshPoll.pollMessage,
+          pollUpdates: freshPoll.pollUpdates
+        }, sock.user?.id || '');
+        db.updatePollVotesSummary(activePoll.sourceGroupId || jid, votesSummary);
+        console.log('[Poll fromMe] ✅ Voto propio guardado para:', botCleanJid);
+      } catch (err) {
+        console.error('[Poll fromMe] Error actualizando votesSummary:', err.message);
+      }
+    }
+  });
+
 
   sock.ev.on('group-participants.update', async (update) => {
     try {
