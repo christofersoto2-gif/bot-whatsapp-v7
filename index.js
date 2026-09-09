@@ -158,7 +158,15 @@ async function startBot() {
     const crypto = require('crypto');
     const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest();
 
+    console.log('[PollDebug] messages.update disparado, total updates:', updates.length);
     for (const update of updates) {
+      console.log('[PollDebug] update.key:', JSON.stringify(update.key));
+      console.log('[PollDebug] tiene pollUpdates:', !!(update.pollUpdates?.length));
+      if (update.pollUpdates?.length) {
+        console.log('[PollDebug] pollUpdates[0].pollUpdateMessageKey:', JSON.stringify(update.pollUpdates[0]?.pollUpdateMessageKey));
+        console.log('[PollDebug] pollUpdates[0].vote.selectedOptions length:', update.pollUpdates[0]?.vote?.selectedOptions?.length);
+      }
+
       const pollUpdates = update.pollUpdates;
       if (!pollUpdates || !pollUpdates.length) continue;
 
