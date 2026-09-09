@@ -485,6 +485,14 @@ class DatabaseManager {
     if (groupId && this.data.groups[groupId] && this.data.groups[groupId].poll) {
       poll = this.data.groups[groupId].poll;
       sourceGroupId = groupId;
+    } else {
+      for (const gId of Object.keys(this.data.groups)) {
+        if (this.data.groups[gId].poll) {
+          poll = this.data.groups[gId].poll;
+          sourceGroupId = gId;
+          break;
+        }
+      }
     }
 
     if (!poll) return null;
