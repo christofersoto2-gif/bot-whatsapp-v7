@@ -235,10 +235,10 @@ async function handleMessage(sock, msg) {
 
       const decryptedVote = tryDecryptPollVote(pollUpdateMsg.vote, pollMsgId, pollEncKey, creatorCandidates, voterCandidates);
       if (!decryptedVote) {
-        console.error('[Poll] ❌ Ninguna combinación de JIDs logró desencriptar el voto.');
+        // Los votos propios (fromMe) no pueden desencriptarse desde un dispositivo vinculado — es normal
         return;
       }
-      console.log('[Poll] ✅ Voto desencriptado — selectedOptions:', decryptedVote?.selectedOptions?.length);
+      console.log('[Poll] ✅ Voto desencriptado:', voterNorm);
 
 
       // Guardar pollUpdate con fromMe:false para que getKeyAuthor devuelva el votante, no el bot
