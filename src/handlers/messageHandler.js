@@ -205,12 +205,24 @@ async function handleMessage(sock, msg) {
       else if (Array.isArray(rawKey))                                   pollEncKey = Buffer.from(rawKey);
       else                                                              pollEncKey = Buffer.from(Object.values(rawKey));
 
-      // pollCreatorJid: usar el participant del pollCreationMessageKey del voto (combo ganador confirmado)
+      // pollCreatorJid y voterJid para desencriptación:
+      // CRÍTICO: Baileys usa el JID crudo con sufijo de dispositivo (:0/:7) cuando participant es undefined.
+      // Normalizar el JID (quitar el :7) rompe el cálculo HMAC → "Unsupported state or unable to authenticate data"
       const pollMsgId      = activePoll.id;
-      const voterNorm      = normalizeJid(voterJidRaw);
-      const pollCreatorJid = normalizeJid(pollUpdateMsg.pollCreationMessageKey?.participant || sock.user?.id || '');
+      const rawBotId       = sock.user?.id || '';            // e.g. 56xxx:7@s.whatsapp.net
+      const voterNorm      = normalizeJid(voterJidRaw);     // para guardar en DB siempre normalizado
 
-      console.log('[Poll] fromMe:', msg.key.fromMe, '| pollCreatorJid:', pollCreatorJid, '| voterNorm:', voterNorm);
+      // Si el voto viene fromMe, usamos el JID crudo del bot (SIN normalizar) para la desencriptación
+      const decryptionVoterJid = msg.key.fromMe
+        ? rawBotId
+        : normalizeJid(voterJidRaw);
+
+      // pollCreatorJid: si participant está definido → normalizar; si no → usar JID crudo del bot
+      const pollCreatorJid = pollUpdateMsg.pollCreationMessageKey?.participant
+        ? normalizeJid(pollUpdateMsg.pollCreationMessageKey.participant)
+        : rawBotId;
+
+      console.log('[Poll] fromMe:', msg.key.fromMe, '| pollCreatorJid:', pollCreatorJid, '| decryptionVoterJid:', decryptionVoterJid, '| voterNorm:', voterNorm);
 
       let decryptedVote;
       try {
@@ -218,7 +230,7 @@ async function handleMessage(sock, msg) {
           pollCreatorJid,
           pollMsgId,
           pollEncKey,
-          voterJid: voterNorm
+          voterJid: decryptionVoterJid
         });
         console.log('[Poll] ✅ Voto desencriptado — selectedOptions:', decryptedVote?.selectedOptions?.length);
       } catch (err) {
