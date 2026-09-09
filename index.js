@@ -150,6 +150,53 @@ async function startBot() {
     }
   });
 
+  sock.ev.on('messages.update', async (updates) => {
+    for (const update of updates) {
+      const pollUpdates = update.pollUpdates || update.update?.pollUpdates;
+      if (!pollUpdates || !Array.isArray(pollUpdates)) continue;
+
+      const jid = update.key?.remoteJid;
+      const pollMsgId = update.key?.id;
+      if (!jid || !pollMsgId) continue;
+
+      const activePoll = db.getActivePoll(jid);
+      if (!activePoll || activePoll.id !== pollMsgId) continue;
+
+      // Recuperar los votos hechos desde el dispositivo principal (fromMe)
+      const ownUpdates = pollUpdates.filter(u => u.pollUpdateMessageKey?.fromMe);
+      
+      if (ownUpdates.length > 0) {
+        const { getAggregateVotesInPollMessage } = require('@whiskeysockets/baileys');
+        
+        const normalizedUpdates = ownUpdates.map(u => {
+          // Normalizar el JID del bot para que coincida con el formato de WhatsApp
+          const botId = sock.user?.id || '';
+          const cleanBotId = botId.split(':')[0] + '@s.whatsapp.net';
+          
+          return {
+            ...u,
+            pollUpdateMessageKey: {
+              ...u.pollUpdateMessageKey,
+              fromMe: false, // Forzamos a false para que la librería no lo ignore
+              participant: cleanBotId
+            }
+          };
+        });
+
+        db.addPollUpdates(activePoll.sourceGroupId || jid, normalizedUpdates);
+
+        try {
+          const freshPoll = db.getActivePoll(jid);
+          const votesSummary = getAggregateVotesInPollMessage({
+            message: freshPoll.pollMessage,
+            pollUpdates: freshPoll.pollUpdates
+          }, sock.user?.id || '');
+          db.updatePollVotesSummary(activePoll.sourceGroupId || jid, votesSummary);
+        } catch (err) {}
+      }
+    }
+  });
+
   // Poll updates are handled exclusively in messageHandler.js via messages.upsert -> pollUpdateMessage
 
   sock.ev.on('group-participants.update', async (update) => {

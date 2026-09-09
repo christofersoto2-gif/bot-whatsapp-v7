@@ -91,7 +91,7 @@ module.exports = {
     const memberMap = new Map();
     participants.forEach(p => {
       const num = cleanNum(p.id);
-      if (num && num !== botNum && !memberMap.has(num)) {
+      if (num && !memberMap.has(num)) {
         memberMap.set(num, p.id);
       }
     });
