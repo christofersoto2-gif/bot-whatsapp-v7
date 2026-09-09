@@ -105,7 +105,7 @@ module.exports = {
         if (votesSummary[idx] && vOpt.voters) {
           vOpt.voters.forEach(vJid => {
             const num = cleanNum(vJid);
-            if (num && !votedNumsSet.has(num)) {
+            if (num) {
               votedNumsSet.add(num);
               const origJid = memberMap.get(num) || `${num}@s.whatsapp.net`;
               votesSummary[idx].voters.push(origJid);

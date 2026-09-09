@@ -150,62 +150,7 @@ async function startBot() {
     }
   });
 
-  sock.ev.on('messages.update', async (updates) => {
-    // LOG DIAGNÓSTICO: Ver TODOS los eventos messages.update que llegan
-    console.log('[Poll Debug] messages.update disparado. Total updates:', updates.length);
-    for (const update of updates) {
-      console.log('[Poll Debug] update.key:', JSON.stringify(update.key));
-      console.log('[Poll Debug] update.pollUpdates:', JSON.stringify(update.pollUpdates));
-      console.log('[Poll Debug] update.update?.pollUpdates:', JSON.stringify(update.update?.pollUpdates));
-      console.log('[Poll Debug] Claves de update:', Object.keys(update));
-
-      // Buscar pollUpdates en cualquier nivel posible
-      const pollUpdates = update.pollUpdates || update.update?.pollUpdates;
-      if (!pollUpdates) {
-        console.log('[Poll Debug] No hay pollUpdates en este update — omitiendo.');
-        continue;
-      }
-
-      const pollMsgId = update.key?.id;
-      const jid = update.key?.remoteJid;
-      if (!pollMsgId || !jid) continue;
-
-      console.log('[Poll Debug] pollUpdates detectados para jid:', jid, 'pollMsgId:', pollMsgId);
-
-      const activePoll = db.getActivePoll(jid);
-      if (!activePoll) {
-        console.log('[Poll Debug] No hay encuesta activa para este jid.');
-        continue;
-      }
-      if (activePoll.id !== pollMsgId) {
-        console.log('[Poll Debug] IDs no coinciden. activePoll.id:', activePoll.id, '!== pollMsgId:', pollMsgId);
-        continue;
-      }
-
-      const originalMessage = activePoll.pollMessage;
-      if (!originalMessage) {
-        console.log('[Poll Debug] No se encontró pollMessage en la base de datos.');
-        continue;
-      }
-
-      console.log('[Poll Debug] pollMessage existe, tipo:', typeof originalMessage, 'claves:', Object.keys(originalMessage || {}));
-
-      db.addPollUpdates(activePoll.sourceGroupId || jid, Array.isArray(pollUpdates) ? pollUpdates : [pollUpdates]);
-
-      try {
-        const freshPoll = db.getActivePoll(jid);
-        const votesSummary = getAggregateVotesInPollMessage({
-          message: freshPoll.pollMessage,
-          pollUpdates: freshPoll.pollUpdates
-        }, sock.user?.id || '');
-
-        console.log('[Poll Debug] votesSummary resultado:', JSON.stringify(votesSummary));
-        db.updatePollVotesSummary(activePoll.sourceGroupId || jid, votesSummary);
-      } catch (err) {
-        console.error('[Poll Debug] Error en getAggregateVotesInPollMessage:', err.message, err.stack);
-      }
-    }
-  });
+  // Poll updates are handled exclusively in messageHandler.js via messages.upsert -> pollUpdateMessage
 
   sock.ev.on('group-participants.update', async (update) => {
     try {
