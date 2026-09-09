@@ -210,11 +210,19 @@ async function handleMessage(sock, msg) {
       const voterNorm      = normalizeJid(voterJidRaw);
       const pollCreatorJid = normalizeJid(pollUpdateMsg.pollCreationMessageKey?.participant || sock.user?.id || '');
 
-      console.log('[Poll] pollCreatorJid:', pollCreatorJid, '| voterNorm:', voterNorm, '| encKey.length:', pollEncKey.length);
+      // CLAVE PARA DESENCRIPTAR VOTOS PROPIOS: Baileys firma los votos fromMe usando el remoteJid (ID del grupo) si participant es undefined
+      const decryptionVoterJid = msg.key.participant || msg.key.remoteJid;
+
+      console.log('[Poll] pollCreatorJid:', pollCreatorJid, '| voterNorm:', voterNorm, '| decryptionVoterJid:', decryptionVoterJid);
 
       let decryptedVote;
       try {
-        decryptedVote = decryptPollVote(pollUpdateMsg.vote, { pollCreatorJid, pollMsgId, pollEncKey, voterJid: voterNorm });
+        decryptedVote = decryptPollVote(pollUpdateMsg.vote, { 
+          pollCreatorJid, 
+          pollMsgId, 
+          pollEncKey, 
+          voterJid: decryptionVoterJid 
+        });
         console.log('[Poll] ✅ Voto desencriptado — selectedOptions:', decryptedVote?.selectedOptions?.length);
       } catch (err) {
         console.error('[Poll] ❌ Error en decryptPollVote:', err.message);
@@ -227,7 +235,7 @@ async function handleMessage(sock, msg) {
           remoteJid:   msg.key.remoteJid,
           fromMe:      false,          // ← CLAVE: asegurar que el votante sea identificado correctamente
           id:          msg.key.id,
-          participant: voterNorm       // JID normalizado del votante
+          participant: voterNorm       // JID normalizado del votante (el dueño del bot)
         },
         vote: decryptedVote,
         senderTimestampMs: pollUpdateMsg.senderTimestampMs
