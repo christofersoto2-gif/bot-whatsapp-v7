@@ -210,10 +210,15 @@ async function handleMessage(sock, msg) {
       const voterNorm      = normalizeJid(voterJidRaw);
       const pollCreatorJid = normalizeJid(pollUpdateMsg.pollCreationMessageKey?.participant || sock.user?.id || '');
 
-      // CLAVE PARA DESENCRIPTAR VOTOS PROPIOS: Baileys firma los votos fromMe usando el remoteJid (ID del grupo) si participant es undefined
-      const decryptionVoterJid = msg.key.participant || msg.key.remoteJid;
+      // Para votos fromMe (el dueño del bot votando desde su celular principal):
+      // WhatsApp firma el voto con el JID personal del votante, NO con el JID del grupo.
+      // Por eso debemos usar sock.user.id normalizado como clave de desencriptación.
+      const decryptionVoterJid = msg.key.fromMe
+        ? normalizeJid(sock.user?.id || '')
+        : (msg.key.participant || msg.key.remoteJid);
 
-      console.log('[Poll] pollCreatorJid:', pollCreatorJid, '| voterNorm:', voterNorm, '| decryptionVoterJid:', decryptionVoterJid);
+      console.log('[Poll] fromMe:', msg.key.fromMe, '| pollCreatorJid:', pollCreatorJid, '| decryptionVoterJid:', decryptionVoterJid, '| voterNorm:', voterNorm);
+
 
       let decryptedVote;
       try {

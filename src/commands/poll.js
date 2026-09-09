@@ -43,22 +43,9 @@ module.exports = {
       });
     } catch (e) {}
 
+
     const pollId = pollMessage?.key?.id || `VOT-${Date.now()}`;
     db.createPoll(jid, pollId, title, options, pollMessage?.message);
-
-    // 2. Enviar tarjeta informativa de la votación
-    let cardText = `📢 *¡NUEVA VOTACIÓN OFICIAL DE CLAN!* 📢\n\n` +
-                   `📌 *Evento:* ${title}\n\n`;
-
-    options.forEach((opt, idx) => {
-      cardText += `🔹 *${idx + 1}. ${opt}*\n`;
-    });
-
-    cardText += `\n-----------------------------------\n` +
-                `💡 *Toca tu opción directamente en la encuesta de arriba para votar.*\n\n` +
-                `📊 _Usa *${config.prefix}resultados* para ver los votantes y los pendientes._`;
-
-    await sock.sendMessage(jid, { text: cardText });
   },
 
   /**
