@@ -116,7 +116,7 @@ async function getCachedGroupMetadata(sock, jid) {
   }
 }
 
-function tryDecryptPollVote(vote, pollMsgId, pollEncKey, creatorCandidates, voterCandidates) {
+function tryDecryptPollVote(decryptPollVote, vote, pollMsgId, pollEncKey, creatorCandidates, voterCandidates) {
   for (const cJid of creatorCandidates) {
     if (!cJid) continue;
     for (const vJid of voterCandidates) {
@@ -233,7 +233,7 @@ async function handleMessage(sock, msg) {
 
       console.log('[Poll] fromMe:', msg.key.fromMe, '| creatorCandidates:', creatorCandidates, '| voterCandidates:', voterCandidates);
 
-      const decryptedVote = tryDecryptPollVote(pollUpdateMsg.vote, pollMsgId, pollEncKey, creatorCandidates, voterCandidates);
+      const decryptedVote = tryDecryptPollVote(decryptPollVote, pollUpdateMsg.vote, pollMsgId, pollEncKey, creatorCandidates, voterCandidates);
       if (!decryptedVote) {
         // Los votos propios (fromMe) no pueden desencriptarse desde un dispositivo vinculado — es normal
         return;
