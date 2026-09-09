@@ -206,37 +206,40 @@ async function handleMessage(sock, msg) {
       else                                                              pollEncKey = Buffer.from(Object.values(rawKey));
 
       // pollCreatorJid y voterJid para desencriptación:
-      // CRÍTICO: Baileys usa el JID crudo con sufijo de dispositivo (:0/:7) cuando participant es undefined.
-      // Normalizar el JID (quitar el :7) rompe el cálculo HMAC → "Unsupported state or unable to authenticate data"
-      const pollMsgId      = activePoll.id;
-      const rawBotId       = sock.user?.id || '';            // e.g. 56xxx:7@s.whatsapp.net
-      const voterNorm      = normalizeJid(voterJidRaw);     // para guardar en DB siempre normalizado
+      // Usamos tryDecryptPollVote con múltiples candidatos porque el JID exacto varía según
+      // si el mensaje es fromMe, si hay sufijo de dispositivo (:0/:7), etc.
+      const pollMsgId  = activePoll.id;
+      const rawBotId   = sock.user?.id || '';            // e.g. 56xxx:7@s.whatsapp.net
+      const normBotId  = normalizeJid(rawBotId);         // e.g. 56xxx@s.whatsapp.net
+      const voterNorm  = normalizeJid(voterJidRaw);      // JID normalizado del votante (para guardar)
+      const voterRaw   = voterJidRaw;                    // JID crudo del votante
 
-      // Si el voto viene fromMe, usamos el JID crudo del bot (SIN normalizar) para la desencriptación
-      const decryptionVoterJid = msg.key.fromMe
-        ? rawBotId
-        : normalizeJid(voterJidRaw);
+      // Candidatos de creator: el participant de la key del poll, más variantes del bot
+      const pollParticipant = pollUpdateMsg.pollCreationMessageKey?.participant;
+      const creatorCandidates = [
+        pollParticipant,
+        normalizeJid(pollParticipant),
+        rawBotId,
+        normBotId
+      ].filter(Boolean);
 
-      // pollCreatorJid: si participant está definido → normalizar; si no → usar JID crudo del bot
-      const pollCreatorJid = pollUpdateMsg.pollCreationMessageKey?.participant
-        ? normalizeJid(pollUpdateMsg.pollCreationMessageKey.participant)
-        : rawBotId;
+      // Candidatos de voter: todas las variantes del JID del votante
+      const voterCandidates = [
+        voterRaw,
+        voterNorm,
+        rawBotId,
+        normBotId
+      ].filter(Boolean);
 
-      console.log('[Poll] fromMe:', msg.key.fromMe, '| pollCreatorJid:', pollCreatorJid, '| decryptionVoterJid:', decryptionVoterJid, '| voterNorm:', voterNorm);
+      console.log('[Poll] fromMe:', msg.key.fromMe, '| creatorCandidates:', creatorCandidates, '| voterCandidates:', voterCandidates);
 
-      let decryptedVote;
-      try {
-        decryptedVote = decryptPollVote(pollUpdateMsg.vote, {
-          pollCreatorJid,
-          pollMsgId,
-          pollEncKey,
-          voterJid: decryptionVoterJid
-        });
-        console.log('[Poll] ✅ Voto desencriptado — selectedOptions:', decryptedVote?.selectedOptions?.length);
-      } catch (err) {
-        console.error('[Poll] ❌ Error en decryptPollVote:', err.message);
+      const decryptedVote = tryDecryptPollVote(pollUpdateMsg.vote, pollMsgId, pollEncKey, creatorCandidates, voterCandidates);
+      if (!decryptedVote) {
+        console.error('[Poll] ❌ Ninguna combinación de JIDs logró desencriptar el voto.');
         return;
       }
+      console.log('[Poll] ✅ Voto desencriptado — selectedOptions:', decryptedVote?.selectedOptions?.length);
+
 
       // Guardar pollUpdate con fromMe:false para que getKeyAuthor devuelva el votante, no el bot
       const pollUpdate = {
