@@ -10,6 +10,6 @@ module.exports = {
   ownerNumbers: [],
 
   // URLs de imágenes para los mensajes de bienvenida (dejar en null para solo texto)
-  lobbyWelcomeImageUrl: null,
-  generalWelcomeImageUrl: null,
+  lobbyWelcomeImageUrl: 'https://raw.githubusercontent.com/christofersoto2-gif/bot-whatsapp-v7/main/logo-sxf.jpg',
+  generalWelcomeImageUrl: 'https://raw.githubusercontent.com/christofersoto2-gif/bot-whatsapp-v7/main/logo-sxf.jpg',
 };
