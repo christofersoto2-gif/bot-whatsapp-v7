@@ -11,5 +11,5 @@ module.exports = {
 
   // URLs de imágenes para los mensajes de bienvenida (dejar en null para solo texto)
   lobbyWelcomeImageUrl: 'https://raw.githubusercontent.com/christofersoto2-gif/bot-whatsapp-v7/main/logo-sxf.jpg',
-  generalWelcomeImageUrl: 'https://raw.githubusercontent.com/christofersoto2-gif/bot-whatsapp-v7/main/logo-sxf.jpg',
+  generalWelcomeImageUrl: 'https://raw.githubusercontent.com/christofersoto2-gif/bot-whatsapp-v7/main/reglas-sxf.png',
 };

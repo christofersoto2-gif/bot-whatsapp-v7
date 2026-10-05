@@ -38,12 +38,11 @@ async function sendLobbyWelcome(sock, jid, participant) {
  */
 async function sendGeneralWelcome(sock, jid, participant) {
   const number = participant.split('@')[0];
-  const text = `🎉 ¡𝗕𝗶𝗲𝗻𝘃𝗲𝗻𝗶𝗱𝗼(𝗮) 𝗮𝗹 𝗚𝗿𝘂𝗽𝗼 𝗢𝗳𝗶𝗰𝗶𝗮𝗹! 🎉\n` +
+  const text = `／ 🦇 ꓽ ─ ❬ 𝗕𝗜𝐄̷꯭𝐍𝗕𝚺𝐍𝗜𝗗𝐗 ❭ ─ ꓽ 🦇＼\n\n` +
     `\t✰ @${number}\n\n` +
-    `Demos la bienvenida a un nuev@ integrante. Esperamos que te sientas muy cómod@ y disfrutes tu estadía en el clan.\n` +
-    `Disfruta de tu tiempo aquí y de las actividades que se realizan.\n` +
-    `Cualquier duda o consulta que tengas, el staff estará disponible para ayudarte.\n\n` +
-    `¡Bienvenid@ a la familia!`;
+    `¡Hola, personita! Es un honor para nosotros tenerte como nuevo miembro de la familia. ` +
+    `Por favor, antes de seguir lee las reglas del clan y coloca tu etiqueta con el nombre que tienes en Roblox. ` +
+    `Esperamos que te sientas cómodx y puedas encontrar un lugar donde crear muchos momentos que atesorar.`;
 
   if (config.generalWelcomeImageUrl) {
     try {
