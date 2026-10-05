@@ -6,17 +6,16 @@ const config = require('../../config');
  */
 async function sendLobbyWelcome(sock, jid, participant) {
   const number = participant.split('@')[0];
-  const text = `❀ Bienvenido a 𝗟𝗼𝗯𝗯𝘆 𝗩𝟳 - 𝗕𝗶𝗲𝗻𝘃𝗲𝗻𝗶𝗱𝗼𝘀!\n` +
+  const text = `│ 圡 │  𝗕𝗜𝗘𝗡𝗩𝗘𝗡𝗜𝗗𝐗 — 𝗪𝗘𝗟𝗖𝗢𝗠𝗘│ 土 │\n\n` +
     `\t@${number}\n\n` +
-    `│ 圡 │  𝗕𝗜𝗘𝗡𝗩𝗘𝗡𝗜𝗗𝐗 — 𝗪𝗘𝗟𝗖𝗢𝗠𝗘│ 土 │\n\n` +
     `𐎓  𝟬𝟭 Nombre:\n\n` +
-    `𐎓  𝟬𝟮 Edad/Cumpleaños:\n\n` +
+    `𐎓  𝟬𝟮 Edad:\n\n` +
     `𐎓  𝟬𝟯 ¿Estuviste en otro clan? Cuáles y motivos de salida:\n\n` +
     `𐎓  𝟬𝟰 Género:\n\n` +
     `𐎓  𝟬𝟱 ¿Quién te reclutó?\n\n` +
-    `𐎓  𝟬𝟲 Captura de tu perfil en Roblox:\n` +
+    `𐎓  𝟬𝟲 Captura de tu perfil en Roblox y añade el usuario:\n` +
     `¿Te comprometes a ser activo en el clan?\n\n` +
-    `⸻ 𝗥𝗲𝗾𝘂𝗶𝘀𝗶𝘁𝗼 𝗼𝗯𝗹𝗶𝗴𝗮𝘁𝗼𝗿𝗶𝗼: Al ser agregado al clan deberás utilizar automáticamente las iniciales V7.`;
+    `⸻ 𝗥𝗲𝗾𝘂𝗶𝘀𝗶𝘁𝗼 𝗼𝗯𝗹𝗶𝗴𝗮𝘁𝗼𝗿𝗶𝗼: Al ser agregado al clan deberás utilizar automáticamente las iniciales SXF.`;
 
   if (config.lobbyWelcomeImageUrl) {
     try {
