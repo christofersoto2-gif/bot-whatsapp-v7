@@ -574,14 +574,14 @@ async function handleMessage(sock, msg) {
         if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo se usa en grupos.' });
         if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden usar #setlobby.' });
         db.setGroupType(jid, 'lobby');
-        await sock.sendMessage(jid, { text: '✅ *Grupo configurado como LOBBY V7 - BIENVENIDOS.*\n\nCada usuario nuevo que ingrese recibirá automáticamente la Ficha de Postulación.' });
+        await sock.sendMessage(jid, { text: '✅ *Grupo configurado como LOBBY - BIENVENIDOS.*\n\nCada usuario nuevo que ingrese recibirá automáticamente la Ficha de Postulación.' });
         break;
 
       case 'setgeneral':
         if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo se usa en grupos.' });
         if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden usar #setgeneral.' });
         db.setGroupType(jid, 'general');
-        await sock.sendMessage(jid, { text: '✅ *Grupo configurado como GENERAL V7.*\n\nCada miembro nuevo que ingrese recibirá el mensaje oficial de bienvenida al clan Dynasty V7.' });
+        await sock.sendMessage(jid, { text: '✅ *Grupo configurado como GENERAL.*\n\nCada miembro nuevo que ingrese recibirá el mensaje oficial de bienvenida al clan.' });
         break;
 
       case 'testwelcome':
@@ -594,7 +594,7 @@ async function handleMessage(sock, msg) {
         if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo se usa en grupos.' });
         if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden usar #setfichas.' });
         db.setGroupType(jid, 'fichas');
-        await sock.sendMessage(jid, { text: '✅ *Grupo configurado como CANAL DE FICHAS V7.*\n\nAquí se enviarán automáticamente las fichas aprobadas con #aprobar o #aceptar.' });
+        await sock.sendMessage(jid, { text: '✅ *Grupo configurado como CANAL DE FICHAS.*\n\nAquí se enviarán automáticamente las fichas aprobadas con #aprobar o #aceptar.' });
         break;
 
       case 'aprobar':
