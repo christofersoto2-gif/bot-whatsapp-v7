@@ -38,12 +38,12 @@ async function sendLobbyWelcome(sock, jid, participant) {
  */
 async function sendGeneralWelcome(sock, jid, participant) {
   const number = participant.split('@')[0];
-  const text = `❀ Bienvenido a 𝟏• 𝐆𝐄𝐍𝐄𝐑𝐀𝐋 𝐕𝟕' 🕷️🌪️!\n` +
+  const text = `🎉 ¡𝗕𝗶𝗲𝗻𝘃𝗲𝗻𝗶𝗱𝗼(𝗮) 𝗮𝗹 𝗚𝗿𝘂𝗽𝗼 𝗢𝗳𝗶𝗰𝗶𝗮𝗹! 🎉\n` +
     `\t✰ @${number}\n\n` +
-    `Demos la bienvenid@ a un nuev@ integrante. Esperamos que te sientas cómod@ y bienvenid@ en el clan.\n` +
+    `Demos la bienvenida a un nuev@ integrante. Esperamos que te sientas muy cómod@ y disfrutes tu estadía en el clan.\n` +
     `Disfruta de tu tiempo aquí y de las actividades que se realizan.\n` +
     `Cualquier duda o consulta que tengas, el staff estará disponible para ayudarte.\n\n` +
-    `¡Bienvenid@ a la familia Dynasty V7!`;
+    `¡Bienvenid@ a la familia!`;
 
   if (config.generalWelcomeImageUrl) {
     try {
