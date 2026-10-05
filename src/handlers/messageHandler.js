@@ -590,6 +590,20 @@ async function handleMessage(sock, msg) {
         await welcomeHandler.handleWelcomeTest(sock, jid, sender, isGroup, isAdmin);
         break;
 
+      case 'testlobby':
+        if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo funciona dentro del grupo.' });
+        if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden probar la bienvenida.' });
+        await sock.sendMessage(jid, { text: `🧪 *Probando bienvenida de tipo: LOBBY*\n_(Se usa tu número como si acabaras de entrar)_` });
+        await welcomeHandler.sendLobbyWelcome(sock, jid, sender);
+        break;
+
+      case 'testgeneral':
+        if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo funciona dentro del grupo.' });
+        if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden probar la bienvenida.' });
+        await sock.sendMessage(jid, { text: `🧪 *Probando bienvenida de tipo: GENERAL*\n_(Se usa tu número como si acabaras de entrar)_` });
+        await welcomeHandler.sendGeneralWelcome(sock, jid, sender);
+        break;
+
       case 'setfichas':
         if (!isGroup) return sock.sendMessage(jid, { text: '❌ Este comando solo se usa en grupos.' });
         if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Solo los administradores pueden usar #setfichas.' });
