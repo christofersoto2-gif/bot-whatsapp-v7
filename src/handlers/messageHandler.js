@@ -659,7 +659,7 @@ async function handleMessage(sock, msg) {
         const adminNum = senderNumber || 'Admin';
         const dateStr = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-        const captionHeader = quotedMsg?.imageMessage ? `📷 *CAPTURA / FICHA ACEPTADA - DYNASTY V7* 📷` : `📋 *NUEVA FICHA ACEPTADA - DYNASTY V7* 📋`;
+        const captionHeader = quotedMsg?.imageMessage ? `📷 *CAPTURA / FICHA ACEPTADA* 📷` : `📋 *NUEVA FICHA ACEPTADA* 📋`;
 
         const formattedFicha = `${captionHeader}\n\n` +
           `👤 *Miembro Aceptado:* @${applicantNum}\n` +
@@ -698,14 +698,14 @@ async function handleMessage(sock, msg) {
             await sock.sendMessage(jid, { 
               text: `✅ *¡REGISTRO ENVIADO Y APROBADO CON ÉXITO!*\n\n` +
                     `👤 *Postulante:* @${applicantNum}\n` +
-                    `📦 Copiado y archivado en el canal de *FICHAS V7*.`,
+                    `📦 Copiado y archivado en el canal de *FICHAS*.`,
               mentions: [quotedUserJid].filter(Boolean)
             });
           } catch (mErr) {
             await sock.sendMessage(jid, { 
               text: `✅ *¡REGISTRO ENVIADO Y APROBADO CON ÉXITO!*\n\n` +
                     `👤 *Postulante:* ${applicantNum}\n` +
-                    `📦 Copiado y archivado en el canal de *FICHAS V7*.`
+                    `📦 Copiado y archivado en el canal de *FICHAS*.`
             });
           }
         } catch (err) {
